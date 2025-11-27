@@ -84,9 +84,10 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
 
     const init = async () => {
       try {
+        // @ts-ignore - process.env.API_KEY is replaced by Vite
         const apiKey = process.env.API_KEY;
         if (!apiKey) {
-            throw new Error("API Key not found");
+            throw new Error("API Anahtarı bulunamadı. Lütfen .env dosyasını veya Cloudflare ayarlarını kontrol edin.");
         }
 
         // 1. Get Media Stream
@@ -192,15 +193,15 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
         Pozisyon: ${jobPosition}
         
         GÖREVİN:
-        1. BAĞLANIR BAĞLANMAZ, adayın konuşmasını beklemeden HEMEN söze gir. "Merhaba, hoş geldiniz" diyerek kendini tanıt ve süreci başlat.
+        1. Bağlantı kurulur kurulmaz profesyonelce kendini tanıt ve adayı rahatlatarak mülakata başla.
         2. Sadece TÜRKÇE konuş.
         3. Adayı sadece teknik olarak değil, bir PROFILER gibi görsel ve davranışsal olarak analiz et.
-        4. EĞER MÜLAKAT ERKEN SONLANDIRILIRSA: Elindeki mevcut verilerle (görsel, davranışsal, ilk intiba) mutlaka bir rapor oluştur. Adayın mülakatı yarıda kesmesini de bir davranış verisi olarak yorumla (örn: kararlılık, sabırsızlık, kaçınma vb.).
+        4. KRİTİK: Kullanıcı mülakatı sonlandırmak istediğinde (sözlü olarak veya sistem mesajıyla), O ANA KADARKİ verilerle HEMEN "end_interview" fonksiyonunu çalıştır. Veri eksikse bile mevcut izlenimlerine dayanarak raporu doldur, ASLA boş dönme.
         
         MÜLAKAT AKIŞI:
         - Selamla ve kendini tanıt.
         - Teknik ve davranışsal sorular sor.
-        - Mülakatı bitirmen istendiğinde (aday "Bitir" derse veya butona basarsa) veya yeterli veri topladığında "end_interview" fonksiyonunu çağır ve DETAYLI RAPORU oluştur.
+        - Mülakatı bitirmen istendiğinde "end_interview" fonksiyonunu çağır ve DETAYLI RAPORU oluştur.
         `;
 
         // Connect Session
@@ -219,9 +220,6 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                     console.log("Session Opened");
                     setStatus(InterviewStatus.ACTIVE);
 
-                    // Note: Removed session.send() as it causes crashes on some client versions.
-                    // We rely on the systemInstruction "BAĞLANIR BAĞLANMAZ... HEMEN söze gir" to trigger the greeting.
-                    
                     // START AUDIO INPUT STREAMING
                     const source = inputCtx.createMediaStreamSource(stream);
                     const processor = inputCtx.createScriptProcessor(4096, 1, 1);
@@ -404,32 +402,28 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
 
     try {
         if (sessionRef.current) {
-            // Safe Check: Does session have a send method?
-            if (typeof sessionRef.current.send === 'function') {
-                const endMessage = "Aday mülakatı 'Bitir' butonuna basarak, kendi inisiyatifiyle ŞU AN sonlandırdı. Mülakatı hemen kes. Lütfen bu davranışı analizine dahil et ve raporu oluştur.";
-                await sessionRef.current.send({
-                    parts: [{ text: endMessage }],
-                    turnComplete: true
-                });
-            } else {
-                console.warn("session.send is not available. Closing session directly.");
-                // If we can't tell the AI to end, we just close. The report will be missing.
-                cleanup();
-                onEnd();
-            }
+            console.log("Requesting interview end from AI...");
+            // Send text command to force AI to wrap up
+            await sessionRef.current.send({
+                parts: [{ text: "Kullanıcı 'Bitir' butonuna bastı. Mülakatı ŞU AN sonlandır ve elindeki verilerle hemen 'end_interview' fonksiyonunu çalıştırarak raporu üret." }],
+                turnComplete: true
+            });
         }
     } catch(e) {
-        console.error("Failed to send end message", e);
+        console.error("Failed to send end signal", e);
+        // Fallback if sending fails
         cleanup();
-        onEnd(); // Fallback end
+        onEnd();
+        return;
     }
 
-    // Safety timeout: If AI doesn't call the tool within 8 seconds, close anyway.
+    // Set a safety timeout: Wait 8 seconds for the AI to generate the report.
+    // If it doesn't respond in time, force close.
     setTimeout(() => {
         if (isSessionActiveRef.current) {
-            console.warn("AI failed to generate report in time.");
+            console.warn("AI failed to generate report in time after manual end.");
             cleanup();
-            onEnd(); // End without report (App.tsx will show error)
+            onEnd(); // This triggers the 'Report not available' screen
         }
     }, 8000);
   };
@@ -464,7 +458,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                     İK Uzmanı {avatarId === 'female' ? 'Zeynep' : 'Mert'}
                 </h2>
                 <p className="text-slate-300 text-sm mt-1 drop-shadow-sm">
-                    {status === InterviewStatus.CONNECTING ? 'Bağlantı kuruluyor...' : isEnding ? 'Rapor oluşturuluyor...' : 'Seni dinliyor...'}
+                    {status === InterviewStatus.CONNECTING ? 'Bağlantı kuruluyor...' : isEnding ? 'Rapor oluşturuluyor... Lütfen bekleyin' : 'Seni dinliyor...'}
                 </p>
             </div>
         </div>

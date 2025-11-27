@@ -85,6 +85,12 @@ function App() {
   const [report, setReport] = useState<InterviewReport | null>(null);
 
   const startInterview = () => {
+    // @ts-ignore - process.env is injected via Vite
+    if (!process.env.API_KEY) {
+        setErrorMsg("API Anahtarı bulunamadı. Lütfen Cloudflare veya .env dosyasını kontrol edin.");
+        return;
+    }
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setErrorMsg("Tarayıcınız medya cihazlarını desteklemiyor. Lütfen Chrome veya Edge kullanın.");
         return;
