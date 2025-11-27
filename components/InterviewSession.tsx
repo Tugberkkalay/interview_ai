@@ -84,6 +84,11 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
 
     const init = async () => {
       try {
+        const apiKey = process.env.API_KEY;
+        if (!apiKey) {
+            throw new Error("API Key not found");
+        }
+
         // 1. Get Media Stream
         const stream = await navigator.mediaDevices.getUserMedia({
             audio: {
@@ -122,7 +127,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
         setAudioAnalyser(analyser);
 
         // 4. Connect to Gemini Live API
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const ai = new GoogleGenAI({ apiKey: apiKey });
         
         // Define Tool for ending interview with COMPREHENSIVE REPORT SCHEMA
         const endInterviewTool: FunctionDeclaration = {
