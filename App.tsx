@@ -99,8 +99,14 @@ function App() {
   };
 
   const endInterview = (generatedReport?: InterviewReport) => {
-    if(generatedReport) setReport(generatedReport);
-    setSessionStatus(InterviewStatus.ENDED);
+    if(generatedReport) {
+        setReport(generatedReport);
+        setSessionStatus(InterviewStatus.ENDED);
+    } else {
+        // If ended without report, treat as a "finished but failed to report" state or just ended
+        // We will keep sessionStatus as ENDED but report as null, and handle UI accordingly
+        setSessionStatus(InterviewStatus.ENDED);
+    }
   };
 
   const handleError = (msg: string) => {
@@ -390,8 +396,8 @@ function App() {
             </div>
         )}
 
-        {/* ERROR / ENDED WITHOUT REPORT */}
-        {(sessionStatus === InterviewStatus.ENDED && !report || sessionStatus === InterviewStatus.ERROR) && (
+        {/* LOADING / ERROR STATE (Ended without report or API Error) */}
+        {((sessionStatus === InterviewStatus.ENDED && !report) || sessionStatus === InterviewStatus.ERROR) && (
              <div className="max-w-md w-full p-8 bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl text-center animate-fade-in">
                  <div className="w-16 h-16 mx-auto bg-slate-700 rounded-full flex items-center justify-center mb-4">
                     {sessionStatus === InterviewStatus.ERROR ? (
@@ -402,21 +408,26 @@ function App() {
                  </div>
                  
                  <h2 className="text-2xl font-bold text-white mb-2">
-                     {sessionStatus === InterviewStatus.ERROR ? 'Bir Hata Oluştu' : 'Analiz Hazırlanıyor...'}
+                     {sessionStatus === InterviewStatus.ERROR ? 'Bir Hata Oluştu' : (
+                         sessionStatus === InterviewStatus.ENDED && !report ? 'Rapor Oluşturulamadı' : 'Analiz Hazırlanıyor...'
+                     )}
                  </h2>
                  
                  <p className="text-slate-400 mb-6">
                      {sessionStatus === InterviewStatus.ERROR 
                         ? (errorMsg || "Bağlantı kesildi.") 
-                        : "Zeynep mülakat notlarını derliyor ve performans raporunu oluşturuyor. Lütfen bekleyin."}
+                        : (sessionStatus === InterviewStatus.ENDED && !report)
+                            ? "Bağlantı mülakat raporu oluşturulmadan sonlandı veya zaman aşımına uğradı."
+                            : `${selectedAvatar === 'female' ? 'Zeynep' : 'Mert'} mülakat notlarını derliyor ve performans raporunu oluşturuyor. Lütfen bekleyin.`
+                     }
                  </p>
                  
-                 {sessionStatus === InterviewStatus.ERROR && (
+                 {(sessionStatus === InterviewStatus.ERROR || (sessionStatus === InterviewStatus.ENDED && !report)) && (
                     <button 
                         onClick={reset}
-                        className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium"
+                        className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
                     >
-                        Tekrar Dene
+                        <span>Ana Menüye Dön</span>
                     </button>
                  )}
              </div>

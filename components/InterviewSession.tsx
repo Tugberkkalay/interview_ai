@@ -25,11 +25,13 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
   const [audioAnalyser, setAudioAnalyser] = useState<AnalyserNode | null>(null); // Passed to Avatar
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isEnding, setIsEnding] = useState(false); // To show loading state on End button
 
   // Refs for logic (non-rendering state)
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sessionRef = useRef<any>(null); // To store the session object
+  const isSessionActiveRef = useRef(true);
   
   // Audio Contexts
   const audioContextsRef = useRef<AudioContextRefs>({});
@@ -41,6 +43,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
   // Cleanup function to stop all media and processing
   const cleanup = useCallback(() => {
     console.log("Cleaning up session...");
+    isSessionActiveRef.current = false;
     
     // Stop Video Loop
     if (videoIntervalRef.current) {
@@ -77,7 +80,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
 
   // Initialize Session
   useEffect(() => {
-    let isActive = true;
+    isSessionActiveRef.current = true;
 
     const init = async () => {
       try {
@@ -94,7 +97,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
             }
         });
 
-        if (!isActive) return;
+        if (!isSessionActiveRef.current) return;
         
         audioContextsRef.current.stream = stream;
 
@@ -184,20 +187,15 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
         Pozisyon: ${jobPosition}
         
         GÖREVİN:
-        1. Adayla görüntülü ve sesli mülakat yap.
+        1. BAĞLANIR BAĞLANMAZ, adayın konuşmasını beklemeden HEMEN söze gir. "Merhaba, hoş geldiniz" diyerek kendini tanıt ve süreci başlat.
         2. Sadece TÜRKÇE konuş.
         3. Adayı sadece teknik olarak değil, bir PROFILER gibi görsel ve davranışsal olarak analiz et.
-        
-        GÖRSEL ANALİZ KRİTERLERİN:
-        - Giyim kuşam (Profesyonel mi?)
-        - Arka plan (Düzenli mi?)
-        - Göz teması ve jestler.
+        4. EĞER MÜLAKAT ERKEN SONLANDIRILIRSA: Elindeki mevcut verilerle (görsel, davranışsal, ilk intiba) mutlaka bir rapor oluştur. Adayın mülakatı yarıda kesmesini de bir davranış verisi olarak yorumla (örn: kararlılık, sabırsızlık, kaçınma vb.).
         
         MÜLAKAT AKIŞI:
         - Selamla ve kendini tanıt.
-        - Adayın kendini tanıtmasını iste.
         - Teknik ve davranışsal sorular sor.
-        - Yeterli veri topladığında (3-5 soru) "end_interview" fonksiyonunu çağır ve DETAYLI RAPORU oluştur.
+        - Mülakatı bitirmen istendiğinde (aday "Bitir" derse veya butona basarsa) veya yeterli veri topladığında "end_interview" fonksiyonunu çağır ve DETAYLI RAPORU oluştur.
         `;
 
         // Connect Session
@@ -212,9 +210,12 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                 }
             },
             callbacks: {
-                onopen: () => {
+                onopen: async () => {
                     console.log("Session Opened");
                     setStatus(InterviewStatus.ACTIVE);
+
+                    // Note: Removed session.send() as it causes crashes on some client versions.
+                    // We rely on the systemInstruction "BAĞLANIR BAĞLANMAZ... HEMEN söze gir" to trigger the greeting.
                     
                     // START AUDIO INPUT STREAMING
                     const source = inputCtx.createMediaStreamSource(stream);
@@ -251,7 +252,6 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                                 canvas.toBlob(async (blob) => {
                                     if (blob) {
                                         // Cast to any to avoid type mismatch between DOM Blob and GenAI Blob
-                                        // due to shadowing in audioUtils. 
                                         const base64 = await blobToBase64(blob as any); 
                                         sessionPromise.then(session => {
                                             session.sendRealtimeInput({
@@ -273,26 +273,33 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                         for (const fc of msg.toolCall.functionCalls) {
                             if (fc.name === 'end_interview') {
                                 console.log("AI decided to end interview:", fc.args);
-                                const report = fc.args['report'] as InterviewReport;
-                                
-                                // Acknowledge tool call to API
-                                sessionPromise.then(session => {
-                                    session.sendToolResponse({
-                                        functionResponses: [{
-                                            id: fc.id,
-                                            name: fc.name,
-                                            response: { result: "ok" }
-                                        }]
+                                try {
+                                    const report = fc.args['report'] as InterviewReport;
+                                    
+                                    // Acknowledge tool call to API
+                                    sessionPromise.then(session => {
+                                        session.sendToolResponse({
+                                            functionResponses: [{
+                                                id: fc.id,
+                                                name: fc.name,
+                                                response: { result: "ok" }
+                                            }]
+                                        });
                                     });
-                                });
 
-                                // Graceful exit
-                                setTimeout(() => {
-                                    if (isActive) {
-                                        cleanup();
-                                        onEnd(report);
-                                    }
-                                }, 4000);
+                                    // Graceful exit with report
+                                    setTimeout(() => {
+                                        if (isSessionActiveRef.current) {
+                                            cleanup();
+                                            onEnd(report);
+                                        }
+                                    }, 2000);
+                                } catch (e) {
+                                    console.error("Error parsing report:", e);
+                                    // Try to close gracefully anyway
+                                    cleanup();
+                                    onEnd(); // End without report
+                                }
                             }
                         }
                     }
@@ -334,11 +341,11 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                 },
                 onclose: () => {
                     console.log("Session Closed");
-                    if (isActive) onEnd();
+                    if (isSessionActiveRef.current) onEnd();
                 },
                 onerror: (e) => {
                     console.error("Session Error", e);
-                    if (isActive) onError("Bağlantı hatası oluştu.");
+                    if (isSessionActiveRef.current) onError("Bağlantı hatası oluştu.");
                 }
             }
         });
@@ -348,14 +355,14 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
 
       } catch (err: any) {
         console.error("Initialization error:", err);
-        if (isActive) onError(err.message || "Mikrofon/Kamera erişimi sağlanamadı.");
+        if (isSessionActiveRef.current) onError(err.message || "Mikrofon/Kamera erişimi sağlanamadı.");
       }
     };
 
     init();
 
     return () => {
-      isActive = false;
+      isSessionActiveRef.current = false;
       cleanup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -383,6 +390,43 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
         });
         setIsVideoEnabled(!isVideoEnabled);
     }
+  };
+
+  // Handle Manual End Button
+  const handleManualEnd = async () => {
+    if (isEnding) return;
+    setIsEnding(true);
+
+    try {
+        if (sessionRef.current) {
+            // Safe Check: Does session have a send method?
+            if (typeof sessionRef.current.send === 'function') {
+                const endMessage = "Aday mülakatı 'Bitir' butonuna basarak, kendi inisiyatifiyle ŞU AN sonlandırdı. Mülakatı hemen kes. Lütfen bu davranışı analizine dahil et ve raporu oluştur.";
+                await sessionRef.current.send({
+                    parts: [{ text: endMessage }],
+                    turnComplete: true
+                });
+            } else {
+                console.warn("session.send is not available. Closing session directly.");
+                // If we can't tell the AI to end, we just close. The report will be missing.
+                cleanup();
+                onEnd();
+            }
+        }
+    } catch(e) {
+        console.error("Failed to send end message", e);
+        cleanup();
+        onEnd(); // Fallback end
+    }
+
+    // Safety timeout: If AI doesn't call the tool within 8 seconds, close anyway.
+    setTimeout(() => {
+        if (isSessionActiveRef.current) {
+            console.warn("AI failed to generate report in time.");
+            cleanup();
+            onEnd(); // End without report (App.tsx will show error)
+        }
+    }, 8000);
   };
 
   return (
@@ -415,7 +459,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                     İK Uzmanı {avatarId === 'female' ? 'Zeynep' : 'Mert'}
                 </h2>
                 <p className="text-slate-300 text-sm mt-1 drop-shadow-sm">
-                    {status === InterviewStatus.CONNECTING ? 'Bağlantı kuruluyor...' : 'Seni dinliyor...'}
+                    {status === InterviewStatus.CONNECTING ? 'Bağlantı kuruluyor...' : isEnding ? 'Rapor oluşturuluyor...' : 'Seni dinliyor...'}
                 </p>
             </div>
         </div>
@@ -428,7 +472,8 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
       <div className="flex items-center gap-4 bg-slate-800 p-4 rounded-full border border-slate-700 shadow-xl">
         <button 
             onClick={toggleMic}
-            className={`p-4 rounded-full transition-all ${isMuted ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' : 'bg-slate-700 text-white hover:bg-slate-600'}`}
+            disabled={isEnding}
+            className={`p-4 rounded-full transition-all ${isMuted ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' : 'bg-slate-700 text-white hover:bg-slate-600'} ${isEnding ? 'opacity-50 cursor-not-allowed' : ''}`}
             title={isMuted ? "Sesi Aç" : "Sessize Al"}
         >
             {isMuted ? (
@@ -440,7 +485,8 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
 
         <button 
             onClick={toggleVideo}
-            className={`p-4 rounded-full transition-all ${!isVideoEnabled ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' : 'bg-slate-700 text-white hover:bg-slate-600'}`}
+            disabled={isEnding}
+            className={`p-4 rounded-full transition-all ${!isVideoEnabled ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' : 'bg-slate-700 text-white hover:bg-slate-600'} ${isEnding ? 'opacity-50 cursor-not-allowed' : ''}`}
             title={isVideoEnabled ? "Kamerayı Kapat" : "Kamerayı Aç"}
         >
              {isVideoEnabled ? (
@@ -451,11 +497,21 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
         </button>
 
         <button 
-            onClick={() => onEnd()}
-            className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-full transition-colors flex items-center gap-2"
+            onClick={handleManualEnd}
+            disabled={isEnding}
+            className={`px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-full transition-colors flex items-center gap-2 ${isEnding ? 'opacity-70 cursor-wait' : ''}`}
         >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>
-            Bitir
+            {isEnding ? (
+                <>
+                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                   <span>Bitiriliyor...</span>
+                </>
+            ) : (
+                <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>
+                    <span>Bitir</span>
+                </>
+            )}
         </button>
       </div>
 
