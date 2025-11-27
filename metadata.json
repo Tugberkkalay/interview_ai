@@ -1,0 +1,8 @@
+{
+  "name": "AI Video Mülakat",
+  "description": "Google Gemini Live API ile güçlendirilmiş, gerçek zamanlı sesli ve görüntülü yapay zeka mülakat simülasyonu.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
