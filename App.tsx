@@ -182,12 +182,12 @@ function App() {
                  {/* Stats / Trust Badges */}
                  <div className="flex gap-8 pt-4 border-t border-white/5">
                     <div>
-                        <div className="text-3xl font-bold text-white font-mono">2.5s</div>
-                        <div className="text-xs text-slate-500 uppercase tracking-wide">Gecikme Süresi</div>
+                        <div className="text-3xl font-bold text-white font-mono">Sınırsız</div>
+                        <div className="text-xs text-slate-500 uppercase tracking-wide">Pratik İmkanı</div>
                     </div>
                     <div>
-                        <div className="text-3xl font-bold text-white font-mono">100+</div>
-                        <div className="text-xs text-slate-500 uppercase tracking-wide">Analiz Parametresi</div>
+                        <div className="text-3xl font-bold text-white font-mono">360°</div>
+                        <div className="text-xs text-slate-500 uppercase tracking-wide">Yetenek Röntgeni</div>
                     </div>
                  </div>
             </div>
