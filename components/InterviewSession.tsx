@@ -26,12 +26,14 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isEnding, setIsEnding] = useState(false); // To show loading state on End button
+  const [loadingText, setLoadingText] = useState("Sistem başlatılıyor...");
 
   // Refs for logic (non-rendering state)
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sessionRef = useRef<any>(null); // To store the session object
   const isSessionActiveRef = useRef(true);
+  const isAIReadyRef = useRef(false); // Tracks if AI has started speaking
   
   // Audio Contexts
   const audioContextsRef = useRef<AudioContextRefs>({});
@@ -40,10 +42,30 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
   const audioSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const videoIntervalRef = useRef<number | undefined>(undefined);
 
+  // Cycle loading texts
+  useEffect(() => {
+      if (status !== InterviewStatus.CONNECTING) return;
+      
+      const messages = [
+          "Kamera ve mikrofon test ediliyor...",
+          "Mülakat ortamı hazırlanıyor...",
+          "Görüntü işleme modülü aktif...",
+          `${avatarId === 'female' ? 'Zeynep' : 'Mert'} profilinizi inceliyor...`,
+          "Bağlantı kuruluyor..."
+      ];
+      let i = 0;
+      const interval = setInterval(() => {
+          i = (i + 1) % messages.length;
+          setLoadingText(messages[i]);
+      }, 1500);
+      return () => clearInterval(interval);
+  }, [status, avatarId]);
+
   // Cleanup function to stop all media and processing
   const cleanup = useCallback(() => {
     console.log("Cleaning up session...");
     isSessionActiveRef.current = false;
+    isAIReadyRef.current = false;
     
     // Stop Video Loop
     if (videoIntervalRef.current) {
@@ -81,6 +103,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
   // Initialize Session
   useEffect(() => {
     isSessionActiveRef.current = true;
+    isAIReadyRef.current = false;
 
     const init = async () => {
       try {
@@ -232,25 +255,48 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
             callbacks: {
                 onopen: async () => {
                     console.log("Session Opened");
-                    setStatus(InterviewStatus.ACTIVE);
+                    // TRIGGER: Force the AI to speak immediately using session.send
+                    sessionPromise.then(session => {
+                        try {
+                            // Using session.send with clientContent to send text input, as sendRealtimeInput does not support it
+                            (session as any).send({
+                                clientContent: {
+                                    turns: [{
+                                        role: 'user',
+                                        parts: [{ text: "Merhaba, adayı gördüm. Lütfen profesyonel bir şekilde kendini tanıtarak mülakatı başlat." }]
+                                    }],
+                                    turnComplete: true
+                                }
+                            });
+                        } catch(e) {
+                            console.error("Failed to send start trigger:", e);
+                        }
+                    });
 
+                    // FALLBACK: If AI doesn't speak within 6 seconds, activate microphone anyway
+                    setTimeout(() => {
+                        if (isSessionActiveRef.current && !isAIReadyRef.current) {
+                            console.warn("AI start timeout. Activating user microphone fallback.");
+                            isAIReadyRef.current = true;
+                            setStatus(InterviewStatus.ACTIVE);
+                        }
+                    }, 6000);
+                    
                     // START AUDIO INPUT STREAMING
                     const source = inputCtx.createMediaStreamSource(stream);
                     const processor = inputCtx.createScriptProcessor(4096, 1, 1);
                     
                     processor.onaudioprocess = (e) => {
+                        if (!isAIReadyRef.current) return;
                         const inputData = e.inputBuffer.getChannelData(0);
                         const pcmBlob = createPcmBlob(inputData);
-                        
-                        // Send audio chunk
                         sessionPromise.then(session => {
                             session.sendRealtimeInput({ media: pcmBlob });
                         });
                     };
 
                     source.connect(processor);
-                    processor.connect(inputCtx.destination); // Required for script processor to run
-                    
+                    processor.connect(inputCtx.destination);
                     audioContextsRef.current.processor = processor;
                     audioContextsRef.current.source = source;
                     
@@ -258,235 +304,244 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                     const canvas = canvasRef.current;
                     const vid = videoRef.current;
                     const ctx = canvas?.getContext('2d');
-                    
                     if (canvas && vid && ctx) {
                         videoIntervalRef.current = window.setInterval(() => {
-                            if (vid.readyState === 4) { // HAVE_ENOUGH_DATA
-                                canvas.width = vid.videoWidth * 0.25; // Scale down for bandwidth
+                            if (vid.readyState === 4) {
+                                canvas.width = vid.videoWidth * 0.25;
                                 canvas.height = vid.videoHeight * 0.25;
                                 ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
-                                
                                 canvas.toBlob(async (blob) => {
                                     if (blob) {
-                                        // Cast to any to avoid type mismatch between DOM Blob and GenAI Blob
                                         const base64 = await blobToBase64(blob as any); 
                                         sessionPromise.then(session => {
                                             session.sendRealtimeInput({
-                                                media: {
-                                                    mimeType: 'image/jpeg',
-                                                    data: base64
-                                                }
+                                                media: { mimeType: 'image/jpeg', data: base64 }
                                             });
                                         });
                                     }
                                 }, 'image/jpeg', 0.5);
                             }
-                        }, 1000); // 1 FPS is enough for context without killing bandwidth
+                        }, 1000);
                     }
                 },
                 onmessage: async (msg: LiveServerMessage) => {
-                    // Check for Tool Calls (End Interview)
                     if (msg.toolCall) {
                         for (const fc of msg.toolCall.functionCalls) {
                             if (fc.name === 'end_interview') {
-                                console.log("AI decided to end interview:", fc.args);
                                 try {
                                     const report = fc.args['report'] as InterviewReport;
-                                    
-                                    // Acknowledge tool call to API
                                     sessionPromise.then(session => {
                                         session.sendToolResponse({
-                                            functionResponses: [{
-                                                id: fc.id,
-                                                name: fc.name,
-                                                response: { result: "ok" }
-                                            }]
+                                            functionResponses: [{ id: fc.id, name: fc.name, response: { result: "ok" } }]
                                         });
                                     });
-
-                                    // Graceful exit with report
-                                    setTimeout(() => {
-                                        if (isSessionActiveRef.current) {
-                                            cleanup();
-                                            onEnd(report);
-                                        }
-                                    }, 2000);
-                                } catch (e) {
-                                    console.error("Error parsing report:", e);
-                                    // Try to close gracefully anyway
-                                    cleanup();
-                                    onEnd(); // End without report
-                                }
+                                    setTimeout(() => { if (isSessionActiveRef.current) { cleanup(); onEnd(report); } }, 2000);
+                                } catch (e) { cleanup(); onEnd(); }
                             }
                         }
                     }
 
-                    // Audio Playback
                     const base64Audio = msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
                     if (base64Audio) {
+                        if (!isAIReadyRef.current) {
+                            isAIReadyRef.current = true;
+                            setStatus(InterviewStatus.ACTIVE);
+                        }
                         try {
                             const audioBytes = base64ToUint8Array(base64Audio);
                             const audioBuffer = await decodeAudioData(audioBytes, outputCtx, 24000, 1);
-                            
                             const now = outputCtx.currentTime;
                             nextStartTimeRef.current = Math.max(nextStartTimeRef.current, now);
-                            
                             const source = outputCtx.createBufferSource();
                             source.buffer = audioBuffer;
-                            source.connect(analyser); // Connect to analyser (which connects to destination)
-                            
+                            source.connect(analyser);
                             source.start(nextStartTimeRef.current);
                             nextStartTimeRef.current += audioBuffer.duration;
-                            
-                            source.onended = () => {
-                                audioSourcesRef.current.delete(source);
-                            };
+                            source.onended = () => { audioSourcesRef.current.delete(source); };
                             audioSourcesRef.current.add(source);
-
-                        } catch (err) {
-                            console.error("Audio decode error", err);
-                        }
+                        } catch (err) {}
                     }
-
-                    // Handling Interruptions
                     if (msg.serverContent?.interrupted) {
-                        console.log("Interrupted!");
                         audioSourcesRef.current.forEach(s => s.stop());
                         audioSourcesRef.current.clear();
                         nextStartTimeRef.current = 0;
                     }
                 },
-                onclose: () => {
-                    console.log("Session Closed");
-                    if (isSessionActiveRef.current) onEnd();
-                },
-                onerror: (e) => {
-                    console.error("Session Error", e);
-                    if (isSessionActiveRef.current) onError("Bağlantı hatası oluştu.");
-                }
+                onclose: () => { if (isSessionActiveRef.current) onEnd(); },
+                onerror: (e) => { if (isSessionActiveRef.current) onError("Bağlantı hatası oluştu."); }
             }
         });
 
-        // Store session reference for cleanup
         sessionRef.current = await sessionPromise;
-
       } catch (err: any) {
-        console.error("Initialization error:", err);
         if (isSessionActiveRef.current) onError(err.message || "Mikrofon/Kamera erişimi sağlanamadı.");
       }
     };
 
     init();
+    return () => { isSessionActiveRef.current = false; cleanup(); };
+  }, []);
 
-    return () => {
-      isSessionActiveRef.current = false;
-      cleanup();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once on mount
-
-  // Toggle Mic
   const toggleMic = () => {
       const stream = audioContextsRef.current.stream;
       if (stream) {
           const audioTracks = stream.getAudioTracks();
-          audioTracks.forEach(track => {
-              track.enabled = !isMuted; // Toggle Logic: if currently muted(true), make enabled=true
-          });
+          audioTracks.forEach(track => { track.enabled = !isMuted; });
           setIsMuted(!isMuted);
       }
   };
 
-  // Toggle Video
   const toggleVideo = () => {
     const stream = audioContextsRef.current.stream;
     if (stream) {
         const videoTracks = stream.getVideoTracks();
-        videoTracks.forEach(track => {
-            track.enabled = !isVideoEnabled; 
-        });
+        videoTracks.forEach(track => { track.enabled = !isVideoEnabled; });
         setIsVideoEnabled(!isVideoEnabled);
     }
   };
 
-  // Handle Manual End Button
   const handleManualEnd = async () => {
     if (isEnding) return;
     setIsEnding(true);
-
     try {
         if (sessionRef.current) {
-            console.log("Requesting interview end from AI...");
-            // Send text command to force AI to wrap up
+            // Using session.send with clientContent to send text input
             await sessionRef.current.send({
-                parts: [{ text: "Kullanıcı 'Bitir' butonuna bastı. Mülakatı ŞU AN sonlandır ve elindeki verilerle hemen 'end_interview' fonksiyonunu çalıştırarak raporu üret." }],
-                turnComplete: true
+                clientContent: {
+                    turns: [{
+                        role: 'user',
+                        parts: [{ text: "Kullanıcı 'Bitir' butonuna bastı. Mülakatı ŞU AN sonlandır ve elindeki verilerle hemen 'end_interview' fonksiyonunu çalıştır. Veri eksikse bile mevcut izlenimlerine dayanarak raporu doldur, ASLA boş dönme." }]
+                    }],
+                    turnComplete: true
+                }
             });
         }
-    } catch(e) {
-        console.error("Failed to send end signal", e);
-        // Fallback if sending fails
-        cleanup();
-        onEnd();
-        return;
-    }
-
-    // Set a safety timeout: Wait 8 seconds for the AI to generate the report.
-    // If it doesn't respond in time, force close.
+    } catch(e) { cleanup(); onEnd(); return; }
     setTimeout(() => {
-        if (isSessionActiveRef.current) {
-            console.warn("AI failed to generate report in time after manual end.");
-            cleanup();
-            onEnd(); // This triggers the 'Report not available' screen
-        }
+        if (isSessionActiveRef.current) { cleanup(); onEnd(); }
     }, 8000);
   };
+
+  const isActive = status === InterviewStatus.ACTIVE;
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full p-4 gap-6">
       
-      {/* Main Visual Area */}
-      <div className="relative w-full max-w-4xl aspect-video bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
+      {/* Main Visual Container */}
+      <div className="relative w-full max-w-4xl aspect-video bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700 group">
         
-        {/* User Video Feed (PiP style or split) */}
-        <div className="absolute top-4 right-4 w-32 md:w-48 aspect-[4/3] bg-black rounded-lg overflow-hidden border-2 border-slate-600 z-10 shadow-lg">
-           <video 
-             ref={videoRef} 
-             autoPlay 
-             muted 
-             playsInline 
-             className={`w-full h-full object-cover transform scale-x-[-1] ${!isVideoEnabled ? 'hidden' : ''}`}
-           />
-           {!isVideoEnabled && (
-             <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">
-                Kamera Kapalı
-             </div>
-           )}
+        {/* === LAYER 1: LOADING SCREEN (High Z-Index, fades out) === */}
+        <div 
+            className={`absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-900/95 transition-all duration-1000 ease-in-out ${isActive ? 'opacity-0 pointer-events-none scale-105' : 'opacity-100 scale-100'}`}
+        >
+            {/* Animated Pulse Core */}
+            <div className="relative w-32 h-32 mb-8">
+                 <div className="absolute inset-0 bg-blue-500 rounded-full opacity-20 animate-ping"></div>
+                 <div className="absolute inset-4 bg-indigo-500 rounded-full opacity-30 animate-pulse"></div>
+                 <div className="absolute inset-0 flex items-center justify-center">
+                    <svg className="w-12 h-12 text-blue-400 animate-spin-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 0v20" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M2 12h20" />
+                    </svg>
+                 </div>
+            </div>
+            
+            <h2 className="text-3xl font-bold text-white tracking-tight mb-4 animate-pulse">
+                Uzman Hazırlanıyor
+            </h2>
+            
+            {/* Typing Effect / Cycling Text */}
+            <div className="h-8 flex items-center justify-center">
+                 <p className="text-blue-300 font-mono text-lg transition-all duration-500">
+                     {">"} {loadingText}
+                 </p>
+            </div>
+
+            {/* Progress Bar Simulation */}
+            <div className="w-64 h-1 bg-slate-800 rounded-full mt-6 overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 animate-progress w-full origin-left"></div>
+            </div>
         </div>
 
-        {/* AI Avatar Center */}
-        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-slate-800 to-slate-900">
-            <Avatar analyser={audioAnalyser} isActive={status === InterviewStatus.ACTIVE} avatarId={avatarId} />
-            <div className="mt-2 text-center px-4 relative z-10">
-                <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide drop-shadow-md">
-                    İK Uzmanı {avatarId === 'female' ? 'Zeynep' : 'Mert'}
-                </h2>
-                <p className="text-slate-300 text-sm mt-1 drop-shadow-sm">
-                    {status === InterviewStatus.CONNECTING ? 'Bağlantı kuruluyor...' : isEnding ? 'Rapor oluşturuluyor... Lütfen bekleyin' : 'Seni dinliyor...'}
-                </p>
+
+        {/* === LAYER 2: ACTIVE SESSION (Avatar & UI) === */}
+        <div className={`relative w-full h-full transition-opacity duration-1000 delay-300 ${isActive ? 'opacity-100' : 'opacity-0'}`}>
+            
+            {/* Avatar Background */}
+            <div className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-900">
+                <Avatar analyser={audioAnalyser} isActive={isActive} avatarId={avatarId} />
             </div>
+
+            {/* GLASSMORPHISM OVERLAYS (HUD) */}
+            
+            {/* Top Left: Specialist Info */}
+            <div className="absolute top-6 left-6 flex items-center gap-3 animate-slide-down">
+                <div className="bg-black/40 backdrop-blur-md border border-white/10 p-1.5 rounded-full pr-5 flex items-center gap-3 shadow-lg">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-lg font-bold border-2 border-slate-800">
+                        {avatarId === 'female' ? 'Z' : 'M'}
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-white font-bold text-sm leading-tight">{avatarId === 'female' ? 'Zeynep' : 'Mert'}</span>
+                        <span className="text-blue-300 text-[10px] font-semibold tracking-wider uppercase">İK Uzmanı</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Center: Status Pill */}
+            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 animate-slide-up">
+                 <div className={`
+                    flex items-center gap-3 px-6 py-3 rounded-full backdrop-blur-md border shadow-xl transition-all duration-500
+                    ${isEnding 
+                        ? 'bg-red-500/20 border-red-500/30' 
+                        : 'bg-black/50 border-white/10'
+                    }
+                 `}>
+                    {isEnding ? (
+                         <>
+                            <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
+                            <span className="text-white font-semibold tracking-wide">Mülakat Sonlandırılıyor...</span>
+                         </>
+                    ) : (
+                         <>
+                            <div className="flex space-x-1">
+                                <div className="w-1 h-3 bg-green-400 rounded-full animate-music-bar-1"></div>
+                                <div className="w-1 h-3 bg-green-400 rounded-full animate-music-bar-2"></div>
+                                <div className="w-1 h-3 bg-green-400 rounded-full animate-music-bar-3"></div>
+                            </div>
+                            <span className="text-white font-semibold text-lg tracking-wide">Seni Dinliyor</span>
+                         </>
+                    )}
+                 </div>
+            </div>
+
+            {/* Top Right: User Video (PiP) */}
+            <div className="absolute top-6 right-6 w-32 md:w-48 aspect-[4/3] rounded-xl overflow-hidden border-2 border-white/10 shadow-2xl bg-black animate-slide-down">
+                <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    muted 
+                    playsInline 
+                    className={`w-full h-full object-cover transform scale-x-[-1] ${!isVideoEnabled ? 'hidden' : ''}`}
+                />
+                {!isVideoEnabled && (
+                    <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 bg-slate-900">
+                        Kamera Kapalı
+                    </div>
+                )}
+            </div>
+
         </div>
       </div>
 
       {/* Hidden Canvas for Video Processing */}
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Controls */}
-      <div className="flex items-center gap-4 bg-slate-800 p-4 rounded-full border border-slate-700 shadow-xl">
+      {/* Controls Bar */}
+      <div className={`flex items-center gap-4 bg-slate-800/80 backdrop-blur p-4 rounded-full border border-slate-700 shadow-xl transition-all duration-500 ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0 pointer-events-none'}`}>
         <button 
             onClick={toggleMic}
-            disabled={isEnding}
-            className={`p-4 rounded-full transition-all ${isMuted ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' : 'bg-slate-700 text-white hover:bg-slate-600'} ${isEnding ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={isEnding || status === InterviewStatus.CONNECTING}
+            className={`p-4 rounded-full transition-all ${isMuted ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' : 'bg-slate-700 text-white hover:bg-slate-600'} ${isEnding || status === InterviewStatus.CONNECTING ? 'opacity-50 cursor-not-allowed' : ''}`}
             title={isMuted ? "Sesi Aç" : "Sessize Al"}
         >
             {isMuted ? (
@@ -511,8 +566,8 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
 
         <button 
             onClick={handleManualEnd}
-            disabled={isEnding}
-            className={`px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-full transition-colors flex items-center gap-2 ${isEnding ? 'opacity-70 cursor-wait' : ''}`}
+            disabled={isEnding || status === InterviewStatus.CONNECTING}
+            className={`px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-full transition-colors flex items-center gap-2 ${isEnding || status === InterviewStatus.CONNECTING ? 'opacity-70 cursor-wait' : ''}`}
         >
             {isEnding ? (
                 <>
@@ -527,7 +582,36 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
             )}
         </button>
       </div>
-
+      
+      {/* CSS for custom animations */}
+      <style>{`
+        @keyframes progress {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        .animate-progress {
+            animation: progress 2s ease-in-out infinite;
+        }
+        @keyframes music-bar-1 { 0%, 100% { height: 12px; } 50% { height: 20px; } }
+        @keyframes music-bar-2 { 0%, 100% { height: 16px; } 50% { height: 24px; } }
+        @keyframes music-bar-3 { 0%, 100% { height: 10px; } 50% { height: 18px; } }
+        
+        .animate-music-bar-1 { animation: music-bar-1 0.8s infinite ease-in-out; }
+        .animate-music-bar-2 { animation: music-bar-2 0.9s infinite ease-in-out; }
+        .animate-music-bar-3 { animation: music-bar-3 0.7s infinite ease-in-out; }
+        
+        .animate-slide-down { animation: slideDown 0.8s ease-out forwards; }
+        .animate-slide-up { animation: slideUp 0.8s ease-out forwards; }
+        
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 };
