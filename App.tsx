@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { GoogleGenAI, Type } from "@google/genai";
 import { InterviewSession } from './components/InterviewSession';
 import { InterviewStatus, AvatarId, InterviewReport } from './types';
 
@@ -75,13 +76,58 @@ const ScoreCard = ({ title, score }: { title: string, score: number }) => (
     </div>
 );
 
+const SAMPLE_JSON_CV = JSON.stringify({
+  "name": "Ayşe",
+  "surname": "Yılmaz",
+  "email": "ayse.yilmaz@ornekmail.com",
+  "city": "Ankara",
+  "country": "Türkiye",
+  "skills": [
+    "Full Stack Development",
+    "Node.js",
+    "React",
+    "Next.js",
+    "PostgreSQL",
+    "Docker",
+    "AWS Services",
+    "Agile Methodologies"
+  ],
+  "education_summary": "Orta Doğu Teknik Üniversitesi (ODTÜ) Bilgisayar Mühendisliği Lisans Derecesi.",
+  "experience_summary": "Ölçeklenebilir web uygulamaları ve bulut mimarisi üzerine odaklanmış 6 yıllık Full Stack geliştirme deneyimi.",
+  "work_experience_details": [
+    {
+      "company": "TechNova Teknoloji",
+      "position": "Senior Full Stack Developer",
+      "is_ongoing": true,
+      "start_date": "2021-03",
+      "description": "Mikroservis mimarisine geçiş sürecini yönetiyor, Node.js ve AWS kullanarak yüksek trafikli API'ler geliştiriyorum."
+    },
+    {
+      "company": "Softalya Yazılım",
+      "position": "Yazılım Geliştirici",
+      "is_ongoing": false,
+      "start_date": "2018-06",
+      "end_date": "2021-02",
+      "description": "React ve Python kullanarak kurumsal web uygulamaları ve iç yönetim panelleri geliştirdim."
+    }
+  ]
+}, null, 2);
+
 function App() {
   const [sessionStatus, setSessionStatus] = useState<InterviewStatus>(InterviewStatus.IDLE);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   // Settings State
   const [jobPosition, setJobPosition] = useState("Frontend Developer");
+  const [companyName, setCompanyName] = useState("");
+  const [companyInfo, setCompanyInfo] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
+  const [candidateResume, setCandidateResume] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarId>('female');
+  
+  // Parsing State
+  const [isParsing, setIsParsing] = useState(false);
+  
   const [report, setReport] = useState<InterviewReport | null>(null);
 
   const startInterview = () => {
@@ -95,10 +141,12 @@ function App() {
         setErrorMsg("Tarayıcınız medya cihazlarını desteklemiyor. Lütfen Chrome veya Edge kullanın.");
         return;
     }
+    
     if(!jobPosition.trim()) {
         setErrorMsg("Lütfen bir pozisyon giriniz.");
         return;
     }
+
     setSessionStatus(InterviewStatus.ACTIVE);
     setErrorMsg(null);
     setReport(null);
@@ -124,6 +172,122 @@ function App() {
       setReport(null);
   };
 
+  // Helper to read file as base64
+  const readFileAsBase64 = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+              const result = reader.result as string;
+              // Remove data url prefix (e.g. "data:application/pdf;base64,")
+              const base64 = result.split(',')[1];
+              resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+      });
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      // @ts-ignore
+      const apiKey = process.env.API_KEY;
+      if (!apiKey) {
+          alert("CV analizi için API Anahtarı gereklidir.");
+          return;
+      }
+
+      if (file.size > 4 * 1024 * 1024) {
+          alert("Dosya boyutu 4MB'dan küçük olmalıdır.");
+          return;
+      }
+
+      setIsParsing(true);
+      try {
+          const base64Data = await readFileAsBase64(file);
+          const ai = new GoogleGenAI({ apiKey });
+          
+          const response = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents: {
+                  parts: [
+                      {
+                          inlineData: {
+                              mimeType: file.type,
+                              data: base64Data
+                          }
+                      },
+                      {
+                          text: `
+                            Extract the resume information from this document and format it into the following JSON structure exactly.
+                            Do not wrap in markdown code blocks. Just return the raw JSON string.
+                            
+                            Structure requirements:
+                            - "name": candidate first name (string)
+                            - "surname": candidate surname (string)
+                            - "email": email address (string)
+                            - "city": city (string)
+                            - "country": country (string)
+                            - "skills": list of skills (array of strings)
+                            - "education_summary": brief summary of education (string)
+                            - "experience_summary": brief summary of experience (string)
+                            - "work_experience_details": array of objects containing:
+                                - "company": company name
+                                - "position": job title
+                                - "start_date": YYYY-MM format
+                                - "end_date": YYYY-MM format or null if ongoing
+                                - "is_ongoing": boolean
+                                - "description": brief description of responsibilities
+                          `
+                      }
+                  ]
+              },
+              config: {
+                  responseMimeType: "application/json",
+                  responseSchema: {
+                      type: Type.OBJECT,
+                      properties: {
+                          name: { type: Type.STRING },
+                          surname: { type: Type.STRING },
+                          email: { type: Type.STRING },
+                          city: { type: Type.STRING },
+                          country: { type: Type.STRING },
+                          skills: { type: Type.ARRAY, items: { type: Type.STRING } },
+                          education_summary: { type: Type.STRING },
+                          experience_summary: { type: Type.STRING },
+                          work_experience_details: {
+                              type: Type.ARRAY,
+                              items: {
+                                  type: Type.OBJECT,
+                                  properties: {
+                                      company: { type: Type.STRING },
+                                      position: { type: Type.STRING },
+                                      start_date: { type: Type.STRING },
+                                      end_date: { type: Type.STRING, nullable: true },
+                                      is_ongoing: { type: Type.BOOLEAN },
+                                      description: { type: Type.STRING }
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+          });
+
+          if (response.text) {
+              setCandidateResume(response.text);
+          }
+      } catch (error) {
+          console.error("Parsing error:", error);
+          alert("CV analiz edilirken bir hata oluştu. Lütfen dosya formatını kontrol edin veya manuel giriş yapın.");
+      } finally {
+          setIsParsing(false);
+          // Reset input
+          event.target.value = ''; 
+      }
+  };
+
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
       
@@ -139,14 +303,7 @@ function App() {
           <div className="absolute top-[20%] left-[40%] w-[30vw] h-[30vw] bg-pink-600/10 rounded-full blur-[100px] animate-blob animation-delay-4000 mix-blend-screen"></div>
       </div>
 
-      <header className="fixed top-0 left-0 right-0 p-6 z-50 flex items-center justify-between">
-        <div className="flex items-center gap-3 backdrop-blur-md bg-white/5 px-4 py-2 rounded-full border border-white/10 shadow-lg">
-             <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg">
-                <span className="relative z-10">AI</span>
-                <div className="absolute inset-0 rounded-full bg-blue-500 blur-sm opacity-50 animate-pulse"></div>
-             </div>
-             <span className="font-bold text-lg tracking-tight text-white/90">Video Mülakat</span>
-        </div>
+      <header className="fixed top-0 left-0 right-0 p-6 z-50 flex items-center justify-end pointer-events-none">
         {sessionStatus === InterviewStatus.ACTIVE && (
             <div className="px-4 py-1.5 bg-red-500/10 backdrop-blur-md border border-red-500/20 rounded-full flex items-center gap-2 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.2)]">
                 <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]"></div>
@@ -155,144 +312,234 @@ function App() {
         )}
       </header>
 
-      <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 md:px-12 py-20">
+      <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-20 md:p-8">
         
-        {/* === LANDING / IDLE SCREEN === */}
+        {/* === LANDING / IDLE SCREEN (BENTO GRID) === */}
         {sessionStatus === InterviewStatus.IDLE && (
-          <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 lg:gap-20 items-center">
+          <div className="w-full max-w-[1080px] animate-fade-in-up">
             
-            {/* Left: Hero Text */}
-            <div className="md:col-span-7 flex flex-col gap-8 animate-fade-in-up">
-                 <div className="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-bold uppercase tracking-widest mb-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
-                    Yeni Nesil YZ Teknolojisi
-                 </div>
-                 
-                 <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white leading-[0.9]">
-                    Kariyerini <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-                        Simüle Et.
-                    </span>
-                 </h1>
-                 
-                 <p className="text-lg md:text-xl text-slate-400 max-w-2xl font-light leading-relaxed">
-                    En son nesil yapay zeka teknolojisiyle güçlendirilmiş, gerçek zamanlı duygusal ve teknik analiz yapan gelişmiş sistem ile mülakat provası yapın. Geleceğe hazırlanın.
-                 </p>
-
-                 {/* Stats / Trust Badges */}
-                 <div className="flex gap-8 pt-4 border-t border-white/5">
-                    <div>
-                        <div className="text-3xl font-bold text-white font-mono">Sınırsız</div>
-                        <div className="text-xs text-slate-500 uppercase tracking-wide">Pratik İmkanı</div>
-                    </div>
-                    <div>
-                        <div className="text-3xl font-bold text-white font-mono">360°</div>
-                        <div className="text-xs text-slate-500 uppercase tracking-wide">Yetenek Röntgeni</div>
-                    </div>
-                 </div>
+            <div className="mb-8 text-center md:text-left">
+                <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white mb-2">
+                    Mülakat <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Konfigürasyonu</span>
+                </h1>
+                <p className="text-slate-400">Yapay zeka simülasyonunu başlatmak için aşağıdaki adımları tamamlayın.</p>
             </div>
 
-            {/* Right: Interactive Config Card */}
-            <div className="md:col-span-5 w-full animate-fade-in-up delay-100">
-                <div className="relative group">
-                    {/* Glowing background behind form */}
-                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                
+                {/* [01] INTERVIEWER & BASIC ROLE INFO (Left Column) */}
+                <div className="md:col-span-12 lg:col-span-4 flex flex-col gap-6">
                     
-                    <div className="relative bg-slate-900/80 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl">
-                        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                            <span>Mülakat Konfigürasyonu</span>
-                        </h2>
+                    {/* Avatar Selection Card */}
+                    <div className="group relative bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 overflow-hidden transition-all hover:border-blue-500/30">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-white select-none transition-opacity group-hover:opacity-20">01</div>
+                        
+                        <div className="relative z-10">
+                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                <span className="w-1 h-6 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6]"></span> 
+                                Mülakat Uzmanı
+                            </h3>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <button 
+                                    onClick={() => setSelectedAvatar('female')}
+                                    className={`relative p-4 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-3 group/avatar ${selectedAvatar === 'female' ? 'bg-pink-500/10 border-pink-500 shadow-[0_0_20px_rgba(236,72,153,0.2)]' : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'}`}
+                                >
+                                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-3xl shadow-lg group-hover/avatar:scale-110 transition-transform">👩‍💼</div>
+                                    <div className="text-center">
+                                        <div className="font-bold text-white">Zeynep</div>
+                                        <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">İK Uzmanı</div>
+                                    </div>
+                                    {selectedAvatar === 'female' && <div className="absolute top-3 right-3 w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_#22c55e]"></div>}
+                                </button>
 
-                        <div className="space-y-6">
-                            {/* Input Group */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Hedef Pozisyon</label>
-                                <div className="relative group/input">
-                                    <input 
-                                        type="text" 
-                                        value={jobPosition}
-                                        onChange={(e) => setJobPosition(e.target.value)}
-                                        placeholder="Örn: Senior Frontend Developer"
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-medium"
-                                    />
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within/input:text-blue-400 transition-colors">
-                                        💼
+                                <button 
+                                    onClick={() => setSelectedAvatar('male')}
+                                    className={`relative p-4 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-3 group/avatar ${selectedAvatar === 'male' ? 'bg-blue-500/10 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.2)]' : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'}`}
+                                >
+                                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-3xl shadow-lg group-hover/avatar:scale-110 transition-transform">👨‍💼</div>
+                                    <div className="text-center">
+                                        <div className="font-bold text-white">Mert</div>
+                                        <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Teknik Lider</div>
+                                    </div>
+                                    {selectedAvatar === 'male' && <div className="absolute top-3 right-3 w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_#22c55e]"></div>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Role Basic Info Card */}
+                    <div className="group relative bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 overflow-hidden transition-all hover:border-purple-500/30 flex-grow">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-white select-none transition-opacity group-hover:opacity-20">02</div>
+                        
+                        <div className="relative z-10 space-y-5">
+                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                <span className="w-1 h-6 bg-purple-500 rounded-full shadow-[0_0_10px_#a855f7]"></span> 
+                                Pozisyon & Şirket
+                            </h3>
+                            
+                            <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Hedef Pozisyon</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="text" 
+                                            value={jobPosition}
+                                            onChange={(e) => setJobPosition(e.target.value)}
+                                            placeholder="Örn: Senior Frontend Developer"
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none focus:border-purple-500/50 focus:bg-purple-500/5 transition-all font-medium pl-10"
+                                        />
+                                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-lg">💼</div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Şirket Adı (Opsiyonel)</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="text" 
+                                            value={companyName}
+                                            onChange={(e) => setCompanyName(e.target.value)}
+                                            placeholder="Örn: Global Tech Corp"
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none focus:border-purple-500/50 focus:bg-purple-500/5 transition-all font-medium pl-10"
+                                        />
+                                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-lg">🏢</div>
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Avatar Selection Grid */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Uzman Seçimi</label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    {/* Zeynep Card */}
-                                    <button 
-                                        onClick={() => setSelectedAvatar('female')}
-                                        className={`relative p-4 rounded-xl border transition-all duration-300 flex flex-col items-center gap-3 overflow-hidden group/card ${
-                                            selectedAvatar === 'female' 
-                                            ? 'border-pink-500/50 bg-pink-500/10 shadow-[0_0_20px_rgba(236,72,153,0.15)]' 
-                                            : 'border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20'
-                                        }`}
-                                    >
-                                        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-lg transition-transform duration-500 group-hover/card:scale-110 ${selectedAvatar === 'female' ? 'bg-gradient-to-br from-pink-500 to-rose-600' : 'bg-slate-800 grayscale'}`}>
-                                            👩‍💼
-                                        </div>
-                                        <div className="text-center relative z-10">
-                                            <div className={`font-bold transition-colors ${selectedAvatar === 'female' ? 'text-pink-200' : 'text-slate-300'}`}>Zeynep</div>
-                                            <div className="text-[10px] text-slate-500 uppercase font-semibold tracking-wide">İK & Sosyal Beceriler</div>
-                                        </div>
-                                        {/* Selection Indicator */}
-                                        {selectedAvatar === 'female' && (
-                                            <div className="absolute top-2 right-2 w-2 h-2 bg-pink-500 rounded-full shadow-[0_0_8px_#ec4899]"></div>
-                                        )}
-                                    </button>
-
-                                    {/* Mert Card */}
-                                    <button 
-                                        onClick={() => setSelectedAvatar('male')}
-                                        className={`relative p-4 rounded-xl border transition-all duration-300 flex flex-col items-center gap-3 overflow-hidden group/card ${
-                                            selectedAvatar === 'male' 
-                                            ? 'border-blue-500/50 bg-blue-500/10 shadow-[0_0_20px_rgba(59,130,246,0.15)]' 
-                                            : 'border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20'
-                                        }`}
-                                    >
-                                        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-lg transition-transform duration-500 group-hover/card:scale-110 ${selectedAvatar === 'male' ? 'bg-gradient-to-br from-blue-500 to-cyan-600' : 'bg-slate-800 grayscale'}`}>
-                                            👨‍💼
-                                        </div>
-                                        <div className="text-center relative z-10">
-                                            <div className={`font-bold transition-colors ${selectedAvatar === 'male' ? 'text-blue-200' : 'text-slate-300'}`}>Mert</div>
-                                            <div className="text-[10px] text-slate-500 uppercase font-semibold tracking-wide">Teknik Lider</div>
-                                        </div>
-                                        {selectedAvatar === 'male' && (
-                                            <div className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_#3b82f6]"></div>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <button 
-                                onClick={startInterview}
-                                className="relative w-full py-4 mt-2 bg-white text-black font-bold text-lg rounded-xl overflow-hidden group/btn hover:scale-[1.02] transition-transform duration-300 shadow-xl"
-                            >
-                                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></span>
-                                <span className="relative flex items-center justify-center gap-3 group-hover/btn:text-white transition-colors duration-300">
-                                    Simülasyonu Başlat
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                    </svg>
-                                </span>
-                            </button>
                         </div>
                     </div>
                 </div>
-                
-                {errorMsg && (
-                    <div className="mt-6 text-center animate-fade-in">
-                        <span className="inline-block px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm font-medium">
-                            ⚠️ {errorMsg}
-                        </span>
+
+                {/* [03] DETAILS (Middle Column) */}
+                <div className="md:col-span-12 lg:col-span-4 flex flex-col gap-6">
+                     <div className="group relative bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 overflow-hidden h-full transition-all hover:border-indigo-500/30 flex flex-col">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-white select-none transition-opacity group-hover:opacity-20">03</div>
+                        
+                        <div className="relative z-10 flex flex-col h-full">
+                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                <span className="w-1 h-6 bg-indigo-500 rounded-full shadow-[0_0_10px_#6366f1]"></span> 
+                                Detaylar
+                            </h3>
+                            
+                            <div className="flex-1 flex flex-col gap-4">
+                                <div className="flex-1 flex flex-col space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">İş Tanımı (Gereksinimler)</label>
+                                    <textarea 
+                                        value={jobDescription}
+                                        onChange={(e) => setJobDescription(e.target.value)}
+                                        placeholder="Aranan Nitelikler:&#10;- React.js ve TypeScript konusunda uzman&#10;- 5+ yıl deneyim&#10;- Takım çalışmasına yatkın..."
+                                        className="flex-1 w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 transition-all font-mono text-sm resize-none min-h-[120px]"
+                                    />
+                                </div>
+
+                                <div className="flex-none flex flex-col space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Şirket Hakkında (Kültür/Vizyon)</label>
+                                    <textarea 
+                                        value={companyInfo}
+                                        onChange={(e) => setCompanyInfo(e.target.value)}
+                                        placeholder="İnovatif, hızlı büyüyen, çalışan odaklı..."
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 transition-all font-mono text-sm resize-none h-24"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                 )}
+                </div>
+
+                {/* [04] CANDIDATE PROFILE (Right Column) */}
+                <div className="md:col-span-12 lg:col-span-4 flex flex-col gap-6">
+                     <div className="group relative bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 overflow-hidden h-full transition-all hover:border-pink-500/30 flex flex-col">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-white select-none transition-opacity group-hover:opacity-20">04</div>
+                        
+                        <div className="relative z-10 flex flex-col h-full">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <span className="w-1 h-6 bg-pink-500 rounded-full shadow-[0_0_10px_#ec4899]"></span> 
+                                    Aday Profili
+                                </h3>
+                                <button 
+                                    onClick={() => setCandidateResume(SAMPLE_JSON_CV)} 
+                                    className="text-[10px] px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-400 border border-white/5 transition-colors"
+                                >
+                                    Örnek Yükle
+                                </button>
+                            </div>
+                            
+                            {/* Drag & Drop Area */}
+                             <div className="relative group/upload mb-4">
+                                <input 
+                                    type="file"
+                                    accept=".pdf,.txt,.doc,.docx,image/*"
+                                    onChange={handleFileUpload}
+                                    disabled={isParsing}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 disabled:cursor-not-allowed"
+                                />
+                                <div className={`
+                                    relative overflow-hidden
+                                    border-2 border-dashed rounded-2xl p-6 text-center transition-all duration-300
+                                    ${isParsing 
+                                        ? 'border-pink-500 bg-pink-500/10' 
+                                        : 'border-slate-700 bg-slate-800/30 hover:bg-slate-800 hover:border-pink-500/50'
+                                    }
+                                `}>
+                                    {isParsing ? (
+                                        <div className="flex flex-col items-center justify-center py-2">
+                                             <div className="w-8 h-8 mb-2 border-2 border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+                                             <span className="text-pink-400 font-bold text-xs uppercase tracking-wider animate-pulse">YZ Analiz Ediyor...</span>
+                                        </div>
+                                    ) : (
+                                        <div className="py-2 flex flex-col items-center">
+                                            <div className="w-10 h-10 mb-3 rounded-full bg-slate-700 flex items-center justify-center text-xl group-hover/upload:scale-110 transition-transform">📄</div>
+                                            <p className="text-slate-200 text-sm font-bold">CV Yükle</p>
+                                            <p className="text-slate-500 text-[10px] uppercase tracking-wide mt-1">PDF, Resim veya Text</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex-1 flex flex-col space-y-1.5 relative">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">JSON / Metin Verisi</label>
+                                <textarea 
+                                    value={candidateResume}
+                                    onChange={(e) => setCandidateResume(e.target.value)}
+                                    placeholder='{"name": "Ad Soyad", "skills": ["React"], ...} veya düz metin CV...'
+                                    className="flex-1 w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-pink-500/50 focus:bg-pink-500/5 transition-all font-mono text-xs resize-none"
+                                />
+                                {candidateResume && !isParsing && (
+                                    <div className="absolute bottom-3 right-3 pointer-events-none">
+                                        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e] animate-pulse"></div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ACTION BAR (Bottom Full Width) */}
+                <div className="md:col-span-12 mt-2">
+                     <button 
+                        onClick={startInterview}
+                        className="relative w-full py-5 bg-white text-black font-black text-xl rounded-2xl overflow-hidden group/btn hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 shadow-[0_0_40px_rgba(255,255,255,0.1)]"
+                    >
+                        <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"></div>
+                        <span className="relative flex items-center justify-center gap-3 group-hover/btn:text-white transition-colors duration-300">
+                            MÜLAKAT SİMÜLASYONUNU BAŞLAT
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                        </span>
+                    </button>
+                    {errorMsg && (
+                        <div className="mt-4 text-center animate-fade-in">
+                            <span className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm font-medium">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                {errorMsg}
+                            </span>
+                        </div>
+                    )}
+                </div>
+
             </div>
           </div>
         )}
@@ -304,6 +551,10 @@ function App() {
                     onEnd={endInterview} 
                     onError={handleError}
                     jobPosition={jobPosition}
+                    companyName={companyName}
+                    companyInfo={companyInfo}
+                    jobDescription={jobDescription}
+                    candidateResume={candidateResume}
                     avatarId={selectedAvatar}
                  />
              </div>
@@ -327,7 +578,7 @@ function App() {
                     </div>
                     <div className="flex-1 text-center md:text-left z-10">
                         <h2 className="text-4xl font-black text-white tracking-tight">{report.candidateName}</h2>
-                        <p className="text-slate-400 text-xl mb-4 font-light">{jobPosition}</p>
+                        <p className="text-slate-400 text-xl mb-4 font-light">{jobPosition} {companyName && <span className="text-slate-500">at {companyName}</span>}</p>
                         <div className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm tracking-wide border backdrop-blur-md ${
                             report.hiringRecommendation === 'Strong Hire' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
                             report.hiringRecommendation === 'Hire' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
@@ -536,6 +787,13 @@ function App() {
         }
         .animate-fade-in-up {
             animation: fade-in-up 0.8s ease-out forwards;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         .delay-100 { animation-delay: 0.1s; }
         .delay-200 { animation-delay: 0.2s; }
