@@ -52,6 +52,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
   // VAD & Timing Refs
   const lastSpeechTimeRef = useRef<number>(0);
   const pendingReportRef = useRef<InterviewReport | null>(null); // Store report to wait for audio
+  const turnCountRef = useRef<number>(0); // NEW: Track turns to manage initial behavior
   
   // TRANSCRIPT ACCUMULATOR
   const transcriptRef = useRef<{role: string, text: string}[]>([]);
@@ -215,6 +216,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
     isInputEnabledRef.current = false; // Start muted
     hasGeneratedReportRef.current = false;
     pendingReportRef.current = null;
+    turnCountRef.current = 0; // Reset turns
 
     const init = async () => {
       try {
@@ -359,11 +361,16 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                     // Force Active State Immediately
                     setStatus(InterviewStatus.ACTIVE);
                     setIsAISpeaking(true); 
-                    isInputEnabledRef.current = false; 
+                    
+                    // CHANGE: For the first turn (Handshake), keep input enabled.
+                    // This prevents 'silence' if autoplay fails or timing is off.
+                    isInputEnabledRef.current = true; 
 
                     sessionPromise.then(async session => {
-                        // Explicitly trigger the greeting logic
-                        session.sendRealtimeInput({ text: "Mülakat simülasyonunu başlat." });
+                        // Small delay to ensure connection is fully established before sending text
+                        setTimeout(() => {
+                            session.sendRealtimeInput({ text: "Mülakat simülasyonunu başlat." });
+                        }, 500);
                     });
 
                     // Input Stream
@@ -478,8 +485,12 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                     // Handle Audio
                     const base64Audio = msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
                     if (base64Audio) {
-                        // LOGIC: AI is speaking, so MUTE USER immediately
-                        isInputEnabledRef.current = false;
+                        // LOGIC: AI is speaking.
+                        // CHANGE: Only mute user if NOT in the first turn (turn 0).
+                        if (turnCountRef.current > 0) {
+                            isInputEnabledRef.current = false;
+                        }
+                        
                         setIsAISpeaking(true);
 
                         try {
@@ -505,13 +516,15 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                                 
                                 // Check if queue is empty
                                 if (audioSourcesRef.current.size === 0) {
+                                    turnCountRef.current += 1; // Increment turn counter
+
                                     // CASE A: Interview is ending
                                     if (pendingReportRef.current) {
                                         finalizeSession(pendingReportRef.current);
                                     } 
                                     // CASE B: Normal turn switch
                                     else if (isSessionActiveRef.current) {
-                                        // CHANGED: NO DELAY HERE. Immediate turn over to user.
+                                        // Always unmute at the end of audio
                                         isInputEnabledRef.current = true;
                                         setIsAISpeaking(false);
                                         // Reset Speech timer to allow user to speak immediately
