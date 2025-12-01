@@ -26,7 +26,8 @@ interface AudioContextRefs {
 
 export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onError, jobPosition, companyName, companyInfo, jobDescription, candidateResume, avatarId }) => {
   // UI State
-  const [status, setStatus] = useState<InterviewStatus>(InterviewStatus.CONNECTING);
+  const [status, setStatus] = useState<InterviewStatus>(InterviewStatus.IDLE); // Start as IDLE, wait for user click
+  const [isConnectionStarted, setIsConnectionStarted] = useState(false); // Controls the flow
   const [audioAnalyser, setAudioAnalyser] = useState<AnalyserNode | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -119,10 +120,6 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
   // --- STARTUP SOUND (Wakes up AudioContext) ---
   const playStartSound = async (ctx: AudioContext) => {
       try {
-          if (ctx.state === 'suspended') {
-              await ctx.resume();
-          }
-
           // Create a pleasant "Digital Chime"
           const t = ctx.currentTime;
           const osc = ctx.createOscillator();
@@ -142,11 +139,53 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
 
           osc.start(t);
           osc.stop(t + 0.5);
-
-          // Small delay to let the sound finish before AI starts processing
-          await new Promise(r => setTimeout(r, 600)); 
+          
+          return new Promise(r => setTimeout(r, 500));
       } catch (e) {
           console.warn("Could not play start sound:", e);
+      }
+  };
+
+  // --- MANUAL START HANDLER (Fixes Autoplay Policy) ---
+  const handleStartConnection = async () => {
+      try {
+          // 1. Create Audio Contexts immediately on user gesture
+          const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+          const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+          
+          audioContextsRef.current.input = inputCtx;
+          audioContextsRef.current.output = outputCtx;
+
+          // 2. Resume contexts (Critical for some browsers)
+          await outputCtx.resume();
+          await inputCtx.resume();
+
+          // 3. Play sound (Immediate feedback)
+          await playStartSound(outputCtx);
+
+          // 4. Request Media Permissions (Camera/Mic)
+          const stream = await navigator.mediaDevices.getUserMedia({
+              audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 },
+              video: { width: 640, height: 480, frameRate: 15 }
+          });
+          
+          audioContextsRef.current.stream = stream;
+          if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
+
+          // 5. Setup Analyser
+          const analyser = outputCtx.createAnalyser();
+          analyser.fftSize = 512;
+          analyser.smoothingTimeConstant = 0.5;
+          analyser.connect(outputCtx.destination);
+          setAudioAnalyser(analyser);
+
+          // 6. Update State to Trigger Gemini Connection
+          setIsConnectionStarted(true);
+          setStatus(InterviewStatus.CONNECTING);
+
+      } catch (err: any) {
+          console.error("Initialization error:", err);
+          onError("Mikrofon veya kamera izni alınamadı. Lütfen izinleri kontrol edip tekrar deneyin.");
       }
   };
 
@@ -247,6 +286,9 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
   };
 
   useEffect(() => {
+    // Only proceed if user has clicked start
+    if (!isConnectionStarted) return;
+
     isSessionActiveRef.current = true;
     isInputEnabledRef.current = false; // Start muted
     hasGeneratedReportRef.current = false;
@@ -257,34 +299,16 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
       try {
         // @ts-ignore
         const apiKey = process.env.API_KEY;
-        // Basic getUserMedia
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 },
-            video: { width: 640, height: 480, frameRate: 15 }
-        });
 
-        if (!isSessionActiveRef.current) return;
-        audioContextsRef.current.stream = stream;
-        if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
-
-        const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-        const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-        audioContextsRef.current.input = inputCtx;
-        audioContextsRef.current.output = outputCtx;
-
-        // CRITICAL: Play start sound to wake up AudioContext (Autoplay Policy Fix)
-        await playStartSound(outputCtx);
-
-        // Ensure context is running (sometimes it starts suspended)
-        if (outputCtx.state === 'suspended') {
-            await outputCtx.resume();
+        // Ensure we have what we need (should have been set by handleStartConnection)
+        if (!audioContextsRef.current.input || !audioContextsRef.current.output || !audioContextsRef.current.stream) {
+            throw new Error("Audio Contexts not initialized properly.");
         }
 
-        const analyser = outputCtx.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.5;
-        analyser.connect(outputCtx.destination);
-        setAudioAnalyser(analyser);
+        const inputCtx = audioContextsRef.current.input;
+        const outputCtx = audioContextsRef.current.output;
+        const stream = audioContextsRef.current.stream;
+        const analyser = audioAnalyser; // Should be set by handleStartConnection
 
         const ai = new GoogleGenAI({ apiKey });
         
@@ -570,7 +594,11 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                             
                             const source = outputCtx.createBufferSource();
                             source.buffer = audioBuffer;
-                            source.connect(analyser);
+                            if (analyser) {
+                                source.connect(analyser);
+                            } else {
+                                source.connect(outputCtx.destination);
+                            }
                             source.start(nextStartTimeRef.current);
                             nextStartTimeRef.current += audioBuffer.duration;
                             
@@ -633,7 +661,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
     };
     init();
     return () => { isSessionActiveRef.current = false; cleanup(); };
-  }, []);
+  }, [isConnectionStarted]); // Trigger ONLY when user starts connection
 
   const toggleMic = () => {
       if (audioContextsRef.current.stream) {
@@ -691,30 +719,69 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
       {/* Main Visual Container */}
       <div className="relative w-full max-w-4xl aspect-video bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700 group">
         
+        {/* === LAYER 0: WAITING ROOM / CONNECT BUTTON (NEW) === */}
+        {!isConnectionStarted && (
+             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-900">
+                <div className="relative z-10 text-center space-y-8 animate-fade-in-up">
+                    <div className="relative w-32 h-32 mx-auto">
+                        <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-pulse"></div>
+                        <div className="w-full h-full rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center overflow-hidden relative">
+                             {/* Init Video Preview */}
+                             <div className="absolute inset-0 flex items-center justify-center text-4xl">
+                                {avatarId === 'female' ? '👩‍💼' : '👨‍💼'}
+                             </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h2 className="text-3xl font-bold text-white mb-2">Mülakat Odası Hazır</h2>
+                        <p className="text-slate-400">Hazır hissettiğinizde bağlanın.</p>
+                    </div>
+
+                    <button 
+                        onClick={handleStartConnection}
+                        className="group relative px-8 py-4 bg-white text-black font-bold rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                    >
+                         <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                         <span className="relative flex items-center gap-3 group-hover:text-white transition-colors">
+                             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                             BAĞLAN VE BAŞLAT
+                         </span>
+                    </button>
+                </div>
+                
+                {/* Background Grid Effect */}
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+             </div>
+        )}
+
         {/* === LAYER 1: LOADING SCREEN === */}
-        <div 
-            className={`absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-900/95 transition-all duration-1000 ease-in-out ${isActive ? 'opacity-0 pointer-events-none scale-105' : 'opacity-100 scale-100'}`}
-        >
-            <div className="relative w-32 h-32 mb-8">
-                 <div className="absolute inset-0 bg-blue-500 rounded-full opacity-20 animate-ping"></div>
-                 <div className="absolute inset-4 bg-indigo-500 rounded-full opacity-30 animate-pulse"></div>
-                 <div className="absolute inset-0 flex items-center justify-center">
-                    <svg className="w-12 h-12 text-blue-400 animate-spin-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 0v20" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M2 12h20" />
-                    </svg>
-                 </div>
+        {isConnectionStarted && status === InterviewStatus.CONNECTING && (
+            <div 
+                className={`absolute inset-0 z-40 flex flex-col items-center justify-center bg-slate-900/95 transition-all duration-1000 ease-in-out`}
+            >
+                <div className="relative w-32 h-32 mb-8">
+                    <div className="absolute inset-0 bg-blue-500 rounded-full opacity-20 animate-ping"></div>
+                    <div className="absolute inset-4 bg-indigo-500 rounded-full opacity-30 animate-pulse"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <svg className="w-12 h-12 text-blue-400 animate-spin-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 0v20" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M2 12h20" />
+                        </svg>
+                    </div>
+                </div>
+                
+                <h2 className="text-3xl font-bold text-white tracking-tight mb-4 animate-pulse">
+                    Uzman Hazırlanıyor
+                </h2>
+                <div className="h-8 flex items-center justify-center px-4">
+                    <p className="text-blue-300 font-mono text-center text-sm md:text-lg transition-all duration-500">
+                        {">"} {loadingText}
+                    </p>
+                </div>
             </div>
-            
-            <h2 className="text-3xl font-bold text-white tracking-tight mb-4 animate-pulse">
-                Uzman Hazırlanıyor
-            </h2>
-            <div className="h-8 flex items-center justify-center px-4">
-                 <p className="text-blue-300 font-mono text-center text-sm md:text-lg transition-all duration-500">
-                     {">"} {loadingText}
-                 </p>
-            </div>
-        </div>
+        )}
 
 
         {/* === LAYER 2: ACTIVE SESSION === */}
