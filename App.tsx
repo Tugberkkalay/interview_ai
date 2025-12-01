@@ -546,18 +546,16 @@ function App() {
 
         {/* === ACTIVE SESSION === */}
         {sessionStatus === InterviewStatus.ACTIVE && (
-             <div className="w-full max-w-6xl animate-scale-in">
-                 <InterviewSession 
-                    onEnd={endInterview} 
-                    onError={handleError}
-                    jobPosition={jobPosition}
-                    companyName={companyName}
-                    companyInfo={companyInfo}
-                    jobDescription={jobDescription}
-                    candidateResume={candidateResume}
-                    avatarId={selectedAvatar}
-                 />
-             </div>
+             <InterviewSession 
+                onEnd={endInterview} 
+                onError={handleError}
+                jobPosition={jobPosition}
+                companyName={companyName}
+                companyInfo={companyInfo}
+                jobDescription={jobDescription}
+                candidateResume={candidateResume}
+                avatarId={selectedAvatar}
+             />
         )}
 
         {/* === REPORT DASHBOARD (ENDED) === */}

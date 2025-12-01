@@ -47,11 +47,16 @@ export const Avatar: React.FC<AvatarProps> = ({ analyser, isActive, avatarId }) 
     const primaryColor = avatarId === 'female' ? '236, 72, 153' : '59, 130, 246'; // Pink-500 or Blue-500
     const secondaryColor = avatarId === 'female' ? '168, 85, 247' : '6, 182, 212'; // Purple-500 or Cyan-500
 
-    // 3. Main Core (Pulsing)
+    // 3. Main Core (Pulsing) - Responsive Size
+    // Calculate base size relative to smallest screen dimension
+    const minDim = Math.min(width, height);
+    const baseSize = Math.max(minDim * 0.20, 70); // Min 70px base radius
+    
     pulseRef.current += 0.02;
-    const idlePulse = Math.sin(pulseRef.current) * 5;
-    const talkingPulse = vol * 30;
-    const radius = 60 + idlePulse + talkingPulse;
+    const idlePulse = Math.sin(pulseRef.current) * (baseSize * 0.05); // Pulse proportional to size
+    const talkingPulse = vol * (baseSize * 0.3);
+    
+    const radius = baseSize + idlePulse + talkingPulse;
 
     // Outer Glow
     const glow = ctx.createRadialGradient(cx, cy, radius * 0.5, cx, cy, radius * 2);
@@ -87,7 +92,7 @@ export const Avatar: React.FC<AvatarProps> = ({ analyser, isActive, avatarId }) 
     ctx.lineWidth = 2;
     ctx.setLineDash([15, 10]);
     ctx.beginPath();
-    ctx.arc(0, 0, radius + 40, 0, Math.PI * 2);
+    ctx.arc(0, 0, radius + (baseSize * 0.6), 0, Math.PI * 2);
     ctx.stroke();
 
     // Ring 2 (Solid arc)
@@ -96,7 +101,7 @@ export const Avatar: React.FC<AvatarProps> = ({ analyser, isActive, avatarId }) 
     ctx.lineWidth = 4;
     ctx.setLineDash([]);
     ctx.beginPath();
-    ctx.arc(0, 0, radius + 60, 0, Math.PI * 1.5);
+    ctx.arc(0, 0, radius + (baseSize * 0.8), 0, Math.PI * 1.5);
     ctx.stroke();
 
     ctx.restore();
@@ -111,7 +116,7 @@ export const Avatar: React.FC<AvatarProps> = ({ analyser, isActive, avatarId }) 
         
         for (let i = 0; i < bufferLength; i += step) {
              const v = dataArrayRef.current[i] / 128.0;
-             const r = (radius + 80) + (v * 20 * vol);
+             const r = (radius + (baseSize * 1.0)) + (v * (baseSize * 0.3) * vol);
              const angle = (i / bufferLength) * Math.PI * 2 + angleRef.current;
              const x = cx + Math.cos(angle) * r;
              const y = cy + Math.sin(angle) * r;
@@ -158,7 +163,7 @@ export const Avatar: React.FC<AvatarProps> = ({ analyser, isActive, avatarId }) 
       <canvas ref={canvasRef} className="w-full h-full block" />
       
       {/* Decorative Overlay */}
-      <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
+      <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none">
           <span className={`text-[10px] font-mono tracking-[0.3em] uppercase opacity-60 ${avatarId === 'female' ? 'text-pink-400' : 'text-blue-400'}`}>
               AI • {avatarId === 'female' ? 'ZEYNEP' : 'MERT'} • CONNECTED
           </span>
