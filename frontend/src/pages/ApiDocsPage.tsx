@@ -36,7 +36,7 @@ export default function ApiDocsPage() {
           </div>
           <div className="flex items-center gap-4">
             <a
-              href="http://localhost:8000/api/docs/"
+              href={`${API_BASE_URL}/docs/`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-500 transition font-bold text-sm shadow-lg shadow-cyan-900/20"
@@ -44,7 +44,7 @@ export default function ApiDocsPage() {
               🔗 Interactive Swagger
             </a>
             <a
-              href="http://localhost:8000/api/redoc/"
+              href={`${API_BASE_URL}/redoc/`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-4 py-2 bg-white/10 text-white border border-white/10 rounded-lg hover:bg-white/20 transition font-bold text-sm"

@@ -6,6 +6,7 @@ import DashboardLayout from '../components/DashboardLayout';
 export default function SettingsPage() {
   const { company, refreshCompany } = useAuth();
   const [activeTab, setActiveTab] = useState<'general' | 'api' | 'plan'>('general');
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
   
   // State for General Tab
   const [isEditing, setIsEditing] = useState(false);
@@ -504,7 +505,7 @@ Content-Type: application/json`}
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">cURL</span>
                       </div>
                       <pre className="bg-black/30 rounded-xl p-4 text-xs font-mono text-slate-300 overflow-x-auto border border-white/5 scrollbar-thin scrollbar-thumb-white/10">
-{`curl -X POST http://localhost:8000/api/session/create/ \\
+{`curl -X POST ${API_BASE_URL}/session/create/ \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -523,7 +524,7 @@ Content-Type: application/json`}
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">JavaScript / Node.js</span>
                       </div>
                       <pre className="bg-black/30 rounded-xl p-4 text-xs font-mono text-slate-300 overflow-x-auto border border-white/5 scrollbar-thin scrollbar-thumb-white/10">
-{`const response = await fetch('http://localhost:8000/api/session/create/', {
+{`const response = await fetch('${API_BASE_URL}/session/create/', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer YOUR_API_KEY',
@@ -552,7 +553,7 @@ console.log('Interview Link:', data.interview_link);`}
 {`import requests
 
 response = requests.post(
-    'http://localhost:8000/api/session/create/',
+    '${API_BASE_URL}/session/create/',
     headers={
         'Authorization': 'Bearer YOUR_API_KEY',
         'Content-Type': 'application/json'
