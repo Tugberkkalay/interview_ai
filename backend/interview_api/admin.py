@@ -64,19 +64,23 @@ class InterviewSessionAdmin(admin.ModelAdmin):
     
     def status_badge(self, obj):
         """Display colored status badge"""
-        colors = {
-            'pending': '#fbbf24',
-            'active': '#3b82f6',
-            'completed': '#22c55e',
-            'expired': '#ef4444',
-        }
-        color = colors.get(obj.status, '#6b7280')
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 4px 12px; '
-            'border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
-            color,
-            obj.get_status_display()
-        )
+        try:
+            colors = {
+                'pending': '#fbbf24',
+                'active': '#3b82f6',
+                'completed': '#22c55e',
+                'expired': '#ef4444',
+            }
+            color = colors.get(obj.status, '#6b7280') if obj.status else '#6b7280'
+            status_display = obj.get_status_display() if obj.status else 'Bilinmiyor'
+            return format_html(
+                '<span style="background-color: {}; color: white; padding: 4px 12px; '
+                'border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
+                color,
+                status_display
+            )
+        except Exception as e:
+            return format_html('<span style="color: #ef4444;">Hata</span>')
     status_badge.short_description = 'Durum'
 
     def interview_link(self, obj):
@@ -95,53 +99,81 @@ class InterviewSessionAdmin(admin.ModelAdmin):
 
     def copy_link(self, obj):
         """Copy link button"""
-        if obj.token and obj.is_accessible():
-            import os
-            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175')
-            link = f"{frontend_url}/interview/{obj.token}"
-            return format_html(
-                '<button onclick="navigator.clipboard.writeText(\'{}\'); '
-                'alert(\'Link kopyalandı!\');" '
-                'style="background: #3b82f6; color: white; padding: 4px 12px; '
-                'border-radius: 6px; border: none; cursor: pointer; font-size: 11px;">📋 Kopyala</button>',
-                link
-            )
+        try:
+            if obj.token:
+                import os
+                frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175')
+                link = f"{frontend_url}/interview/{obj.token}"
+                # Check if accessible safely
+                is_accessible = False
+                try:
+                    is_accessible = obj.is_accessible()
+                except:
+                    pass
+                
+                if is_accessible:
+                    return format_html(
+                        '<button onclick="navigator.clipboard.writeText(\'{}\'); '
+                        'alert(\'Link kopyalandı!\');" '
+                        'style="background: #3b82f6; color: white; padding: 4px 12px; '
+                        'border-radius: 6px; border: none; cursor: pointer; font-size: 11px;">📋 Kopyala</button>',
+                        link
+                    )
+                else:
+                    return format_html(
+                        '<span style="color: #9ca3af; font-size: 11px;">Süresi dolmuş</span>'
+                    )
+        except Exception as e:
+            return format_html('<span style="color: #ef4444;">Hata</span>')
         return '-'
     copy_link.short_description = 'Link'
 
     def temp_report_info(self, obj):
         """Display temporary report info"""
-        if obj.temp_report_encrypted:
-            return format_html(
-                '<div style="background: #fef3c7; border: 1px solid #fbbf24; padding: 12px; border-radius: 6px;">'
-                '<strong>⚠️ Geçici Rapor Mevcut</strong><br>'
-                'Süre: {}<br>'
-                'Durum: Webhook başarısız, retry bekleniyor'
-                '</div>',
-                obj.temp_report_expires_at.strftime('%Y-%m-%d %H:%M:%S') if obj.temp_report_expires_at else 'Bilinmiyor'
-            )
-        return 'Geçici rapor yok (normal: rapor ATS\'ye gönderildi)'
+        try:
+            if obj.temp_report_encrypted:
+                expires_str = 'Bilinmiyor'
+                try:
+                    if obj.temp_report_expires_at:
+                        expires_str = obj.temp_report_expires_at.strftime('%Y-%m-%d %H:%M:%S')
+                except:
+                    pass
+                return format_html(
+                    '<div style="background: #fef3c7; border: 1px solid #fbbf24; padding: 12px; border-radius: 6px;">'
+                    '<strong>⚠️ Geçici Rapor Mevcut</strong><br>'
+                    'Süre: {}<br>'
+                    'Durum: Webhook başarısız, retry bekleniyor'
+                    '</div>',
+                    expires_str
+                )
+            return 'Geçici rapor yok (normal: rapor ATS\'ye gönderildi)'
+        except Exception as e:
+            return format_html('<span style="color: #ef4444;">Hata: {}</span>', str(e))
     temp_report_info.short_description = 'Geçici Rapor'
     
     def webhook_status(self, obj):
         """Display webhook status"""
-        if not obj.ats_webhook_url:
-            return format_html('<span style="color: #6b7280;">Webhook yapılandırılmamış</span>')
-        
-        if obj.temp_report_encrypted:
-            color = '#fbbf24'
-            status = f'Başarısız (Retry: {obj.webhook_retry_count}/5)'
-        elif obj.status == 'completed' and not obj.temp_report_encrypted:
-            color = '#22c55e'
-            status = 'Başarılı'
-        else:
-            color = '#6b7280'
-            status = 'Beklemede'
-        
-        return format_html(
-            '<span style="color: {}; font-weight: bold;">{}</span>',
-            color, status
-        )
+        try:
+            if not obj.ats_webhook_url:
+                return format_html('<span style="color: #6b7280;">Webhook yapılandırılmamış</span>')
+            
+            if obj.temp_report_encrypted:
+                color = '#fbbf24'
+                retry_count = getattr(obj, 'webhook_retry_count', 0) or 0
+                status = f'Başarısız (Retry: {retry_count}/5)'
+            elif obj.status == 'completed' and not obj.temp_report_encrypted:
+                color = '#22c55e'
+                status = 'Başarılı'
+            else:
+                color = '#6b7280'
+                status = 'Beklemede'
+            
+            return format_html(
+                '<span style="color: {}; font-weight: bold;">{}</span>',
+                color, status
+            )
+        except Exception as e:
+            return format_html('<span style="color: #ef4444;">Hata</span>')
     webhook_status.short_description = 'Webhook Durumu'
 
     def save_model(self, request, obj, form, change):
