@@ -1,0 +1,35 @@
+# Environment
+.env
+.env.local
+frontend/.env
+frontend/.env.local
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Backend
+backend/venv/
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/**/*.pyo
+backend/db.sqlite3
+backend/*.log
+backend/media/
+backend/staticfiles/
+backend/.env
+backend/uv.lock  # uv.lock can be committed, but some prefer to ignore it
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+

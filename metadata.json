@@ -1,8 +1,0 @@
-{
-  "name": "AI Video Mülakat",
-  "description": "En son nesil yapay zeka ile güçlendirilmiş, gerçek zamanlı sesli ve görüntülü mülakat simülasyonu.",
-  "requestFramePermissions": [
-    "camera",
-    "microphone"
-  ]
-}
