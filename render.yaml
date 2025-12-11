@@ -5,8 +5,9 @@ services:
     env: python
     region: frankfurt  # veya oregon, singapore, mumbai, sydney
     plan: free  # Free tier: 750 saat/ay, 15 dakika inactivity sonrası sleep
-    buildCommand: curl -LsSf https://astral.sh/uv/install.sh | sh && source $HOME/.local/bin/env 2>/dev/null || export PATH="$HOME/.local/bin:/opt/render/.local/bin:$PATH" && cd backend && uv sync && uv run python manage.py migrate --noinput && uv run python manage.py create_default_prompts --noinput || true && uv run python manage.py create_admin_user || true && uv run python manage.py collectstatic --noinput
+    buildCommand: curl -LsSf https://astral.sh/uv/install.sh | sh && source $HOME/.local/bin/env 2>/dev/null || export PATH="$HOME/.local/bin:/opt/render/.local/bin:$PATH" && cd backend && uv sync && uv run python manage.py migrate --noinput && uv run python manage.py create_default_prompts || true && uv run python manage.py create_admin_user || true && uv run python manage.py collectstatic --noinput
     startCommand: (command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh) && export PATH="$HOME/.local/bin:/opt/render/.local/bin:$PATH" && cd backend && uv run gunicorn config.wsgi:application
+    healthCheckPath: /api/health/
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
