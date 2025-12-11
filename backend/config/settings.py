@@ -190,6 +190,10 @@ else:
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Settings
+# Cross-origin için CSRF cookie ayarları
+CSRF_COOKIE_SAMESITE = 'None' if IS_RENDER else 'Lax'
+CSRF_COOKIE_SECURE = IS_RENDER  # True in production with HTTPS (None için zorunlu)
+CSRF_COOKIE_HTTPONLY = False  # JavaScript'ten erişilebilir olmalı (bazı durumlarda)
 if IS_RENDER:
     # Production CSRF - same as CORS origins (but not wildcard)
     if CORS_ALLOWED_ORIGINS and CORS_ALLOWED_ORIGINS != ['*']:
@@ -247,8 +251,9 @@ SPECTACULAR_SETTINGS = {
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 86400 * 30  # 30 days
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_SECURE = IS_RENDER  # True in production with HTTPS
+# Cross-origin için 'None' kullanmalıyız (frontend ve backend farklı domain'lerde)
+SESSION_COOKIE_SAMESITE = 'None' if IS_RENDER else 'Lax'
+SESSION_COOKIE_SECURE = IS_RENDER  # True in production with HTTPS (None için zorunlu)
 SESSION_SAVE_EVERY_REQUEST = False
 
 # Security Settings for Production
