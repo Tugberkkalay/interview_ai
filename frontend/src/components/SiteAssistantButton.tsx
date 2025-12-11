@@ -71,6 +71,8 @@ export const SiteAssistantButton: React.FC = () => {
   // Audio buffer for pending audio chunks (when input is disabled)
   const audioBufferRef = useRef<Float32Array[]>([]);
   const pendingAudioChunksRef = useRef<Blob[]>([]);
+  const shouldBufferAudioRef = useRef<boolean>(false); // Sadece AI konuşmasının son 500ms'inde true olacak
+  const bufferStartTimerRef = useRef<NodeJS.Timeout | null>(null); // Buffer başlatma timer'ı
   
   // Transcript
   const transcriptRef = useRef<{role: string, text: string}[]>([]);
@@ -113,6 +115,13 @@ export const SiteAssistantButton: React.FC = () => {
     // Buffer'ı temizle
     audioBufferRef.current = [];
     pendingAudioChunksRef.current = [];
+    shouldBufferAudioRef.current = false;
+    
+    // Buffer timer'ı varsa iptal et
+    if (bufferStartTimerRef.current) {
+        clearTimeout(bufferStartTimerRef.current);
+        bufferStartTimerRef.current = null;
+    }
     
     // Follow-up timer'ı temizle
     if (followUpTimerRef.current) {
@@ -209,6 +218,14 @@ export const SiteAssistantButton: React.FC = () => {
       isUserSpeakingRef.current = false;
       lastSpeechTimeRef.current = 0;
       audioBufferRef.current = [];
+      pendingAudioChunksRef.current = [];
+      shouldBufferAudioRef.current = false;
+      
+      // Buffer timer'ı varsa iptal et
+      if (bufferStartTimerRef.current) {
+          clearTimeout(bufferStartTimerRef.current);
+          bufferStartTimerRef.current = null;
+      }
 
       // Request only audio permission
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -603,8 +620,11 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                             session.sendRealtimeInput({ media: pcmBlob });
                         });
                             } else {
-                                // Input disabled - buffer'da tut (AI konuşuyor, sonra gönderilecek)
-                                pendingAudioChunksRef.current.push(pcmBlob);
+                                // Input disabled - ama sadece AI konuşmasının son 500ms'inde buffer'a ekle
+                                if (shouldBufferAudioRef.current) {
+                                    pendingAudioChunksRef.current.push(pcmBlob);
+                                }
+                                // Eğer shouldBufferAudioRef false ise, sesi tamamen atla (buffer'a ekleme)
                             }
                             
                             // Transcript için buffer'da tut
@@ -623,8 +643,11 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                                         session.sendRealtimeInput({ media: pcmBlob });
                                     });
                                 } else {
-                                    // Input disabled - buffer'da tut (AI konuşuyor, sonra gönderilecek)
-                                    pendingAudioChunksRef.current.push(pcmBlob);
+                                    // Input disabled - ama sadece AI konuşmasının son 500ms'inde buffer'a ekle
+                                    if (shouldBufferAudioRef.current) {
+                                        pendingAudioChunksRef.current.push(pcmBlob);
+                                    }
+                                    // Eğer shouldBufferAudioRef false ise, sesi tamamen atla (buffer'a ekleme)
                                 }
                                 audioBufferRef.current.push(inputDataCopy);
                             } else {
@@ -814,6 +837,16 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                             // AI konuşmaya başladığında kullanıcı konuşma flag'ini reset et
                             isUserSpeakingRef.current = false;
                             userFinishedSpeakingRef.current = false; // AI konuşuyor, flag'i resetle
+                            
+                            // Buffer'ı temizle ve buffer flag'ini kapat
+                            pendingAudioChunksRef.current = [];
+                            shouldBufferAudioRef.current = false;
+                            
+                            // Önceki buffer timer'ı varsa iptal et
+                            if (bufferStartTimerRef.current) {
+                                clearTimeout(bufferStartTimerRef.current);
+                                bufferStartTimerRef.current = null;
+                            }
                         
                         setIsAISpeaking(true);
                             
@@ -851,6 +884,25 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                             // Hızlandırılmış süreyi hesapla
                             nextStartTimeRef.current += audioBuffer.duration;
                             
+                            // AI konuşmasının süresini hesapla (milisaniye cinsinden)
+                            const audioDurationMs = audioBuffer.duration * 1000;
+                            
+                            // Eğer konuşma 500ms'den uzunsa, son 500ms'de buffer'ı aktif et
+                            if (audioDurationMs > 500) {
+                                const bufferStartDelay = audioDurationMs - 500; // Son 500ms'den önce başlat
+                                
+                                bufferStartTimerRef.current = setTimeout(() => {
+                                    if (isSessionActiveRef.current && audioSourcesRef.current.size > 0) {
+                                        shouldBufferAudioRef.current = true;
+                                        console.log("AI speech ending soon - starting to buffer user audio (last 500ms)");
+                                    }
+                                }, bufferStartDelay);
+                            } else {
+                                // Eğer konuşma 500ms'den kısaysa, hemen buffer'ı aktif et
+                                shouldBufferAudioRef.current = true;
+                                console.log("AI speech is short - buffering user audio immediately");
+                            }
+                            
                             audioSourcesRef.current.add(source);
                             
                             source.onended = () => {
@@ -860,6 +912,15 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                                     turnCountRef.current += 1; 
 
                                     if (isSessionActiveRef.current) {
+                                        // Buffer timer'ı varsa iptal et
+                                        if (bufferStartTimerRef.current) {
+                                            clearTimeout(bufferStartTimerRef.current);
+                                            bufferStartTimerRef.current = null;
+                                        }
+                                        
+                                        // Buffer flag'ini kapat
+                                        shouldBufferAudioRef.current = false;
+                                        
                                         // AI konuşması bitti, kullanıcı input'unu tekrar aktif et
                                         // Çok kısa bir bekleme (50ms) ki AI'nın son sesleri tam bitsin
                                         setTimeout(() => {
@@ -874,12 +935,12 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                                                 // İlk kullanıcı konuşması için flag'i sıfırla (eğer henüz konuşmadıysa)
                                                 // Bu sayede ilk konuşma için daha hassas threshold kullanılır
                                                 
-                                                // Buffer'da bekleyen audio chunk'ları hızlıca gönder
+                                                // Buffer'da bekleyen audio chunk'ları hızlıca gönder (sadece son 500ms'deki)
                                                 if (pendingAudioChunksRef.current.length > 0) {
                                                     const chunks = [...pendingAudioChunksRef.current];
                                                     pendingAudioChunksRef.current = [];
                                                     
-                                                    console.log(`Flushing ${chunks.length} pending audio chunks after AI finished speaking`);
+                                                    console.log(`Flushing ${chunks.length} pending audio chunks from last 500ms after AI finished speaking`);
                                                     
                                                     // Buffer'daki chunk'ları çok hızlı gönder (2ms aralıklarla)
                                                     chunks.forEach((chunk, index) => {

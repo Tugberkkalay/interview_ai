@@ -112,9 +112,9 @@ def create_session(request):
     if company:
         company.increment_usage()
     
-    # Generate interview link
+    # Generate interview link (HashRouter format: /interview#/token)
     frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175')
-    interview_link = f"{frontend_url}/interview/{session.token}"
+    interview_link = f"{frontend_url}/interview#/{session.token}"
     
     return Response(
         {
