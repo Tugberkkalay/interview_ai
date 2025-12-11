@@ -42,6 +42,8 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://interview-backend-zb9b.onrender.com/api  # Gerçek backend URL
+      - key: VITE_GEMINI_API_KEY
+        sync: false  # ÖNEMLİ: Render Dashboard → Environment → Add Variable → VITE_GEMINI_API_KEY ekleyin (Backend'deki GEMINI_API_KEY ile aynı değer)
 
 databases:
   # PostgreSQL Database
