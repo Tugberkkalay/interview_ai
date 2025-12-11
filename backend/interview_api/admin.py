@@ -16,7 +16,7 @@ class InterviewSessionAdmin(admin.ModelAdmin):
         'expires_at',
         'copy_link',
     ]
-    list_filter = ['status', 'created_at']
+    list_filter = ['status']  # Removed 'created_at' temporarily to debug
     search_fields = ['external_id', 'token']
     
     def get_queryset(self, request):
@@ -28,6 +28,18 @@ class InterviewSessionAdmin(admin.ModelAdmin):
             # Fallback to empty queryset if there's an error
             from .models import InterviewSession
             return InterviewSession.objects.none()
+    
+    def changelist_view(self, request, extra_context=None):
+        """Override to catch and log any errors"""
+        try:
+            return super().changelist_view(request, extra_context)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in InterviewSession admin: {str(e)}", exc_info=True)
+            # Return a simple error message instead of 500
+            from django.http import HttpResponse
+            return HttpResponse(f"Admin error: {str(e)}", status=500)
     readonly_fields = [
         'token',
         'created_at',
