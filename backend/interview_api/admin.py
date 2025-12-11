@@ -9,7 +9,7 @@ from .profile_models import Profile
 class InterviewSessionAdmin(admin.ModelAdmin):
     list_display = [
         'external_id',
-        'company',
+        'company_display',
         'status_badge',
         'duration_seconds',
         'created_at',
@@ -52,6 +52,16 @@ class InterviewSessionAdmin(admin.ModelAdmin):
         }),
     )
 
+    def company_display(self, obj):
+        """Display company name safely"""
+        if obj.company:
+            return format_html(
+                '<span style="font-weight: 500;">{}</span>',
+                obj.company.company_name
+            )
+        return format_html('<span style="color: #9ca3af;">-</span>')
+    company_display.short_description = 'Şirket'
+    
     def status_badge(self, obj):
         """Display colored status badge"""
         colors = {
