@@ -9,6 +9,15 @@ class Command(BaseCommand):
     help = 'Create admin user if it does not exist (safe to run multiple times)'
 
     def handle(self, *args, **options):
+        # Only run if CREATE_ADMIN_USER environment variable is set to 'true'
+        create_admin = os.getenv('CREATE_ADMIN_USER', 'true').lower() == 'true'
+        
+        if not create_admin:
+            self.stdout.write(
+                self.style.WARNING('CREATE_ADMIN_USER is not set to "true". Skipping admin user creation.')
+            )
+            return
+        
         # Get credentials from environment or use defaults
         admin_username = os.getenv('ADMIN_USERNAME', 'admin')
         admin_email = os.getenv('ADMIN_EMAIL', 'admin@example.com')

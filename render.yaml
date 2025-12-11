@@ -30,6 +30,8 @@ services:
         value: True
       - key: SECURE_SSL_REDIRECT
         value: True
+      - key: CREATE_ADMIN_USER
+        value: true  # İlk deploy için true, sonra false yapabilirsiniz veya silebilirsiniz
 
   # React Frontend Static Site
   - type: web
