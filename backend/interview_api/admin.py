@@ -18,6 +18,16 @@ class InterviewSessionAdmin(admin.ModelAdmin):
     ]
     list_filter = ['status', 'created_at']
     search_fields = ['external_id', 'token']
+    
+    def get_queryset(self, request):
+        """Override to safely handle queryset"""
+        try:
+            qs = super().get_queryset(request)
+            return qs.select_related('company')  # Optimize foreign key access
+        except Exception as e:
+            # Fallback to empty queryset if there's an error
+            from .models import InterviewSession
+            return InterviewSession.objects.none()
     readonly_fields = [
         'token',
         'created_at',
