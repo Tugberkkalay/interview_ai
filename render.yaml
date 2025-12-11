@@ -32,8 +32,9 @@ services:
         value: True
 
   # React Frontend Static Site
-  - type: static_site
+  - type: web
     name: interview-frontend
+    env: static
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     envVars:
