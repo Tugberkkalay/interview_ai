@@ -5,7 +5,7 @@ services:
     env: python
     region: frankfurt  # veya oregon, singapore, mumbai, sydney
     plan: free  # Free tier: 750 saat/ay, 15 dakika inactivity sonrası sleep
-    buildCommand: curl -LsSf https://astral.sh/uv/install.sh | sh && source $HOME/.local/bin/env 2>/dev/null || export PATH="$HOME/.local/bin:/opt/render/.local/bin:$PATH" && cd backend && uv sync && uv run python manage.py migrate --noinput && uv run python manage.py collectstatic --noinput
+    buildCommand: curl -LsSf https://astral.sh/uv/install.sh | sh && source $HOME/.local/bin/env 2>/dev/null || export PATH="$HOME/.local/bin:/opt/render/.local/bin:$PATH" && cd backend && uv sync && uv run python manage.py collectstatic --noinput
     startCommand: (command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh) && export PATH="$HOME/.local/bin:/opt/render/.local/bin:$PATH" && cd backend && uv run gunicorn config.wsgi:application
     envVars:
       - key: PYTHON_VERSION
@@ -21,7 +21,7 @@ services:
           name: interview-db
           property: connectionString
       - key: ALLOWED_HOSTS
-        value: interview-backend.onrender.com  # Render deploy sonrası gerçek URL'i buraya yazın
+        value: interview-backend-zb9b.onrender.com  # Gerçek backend URL
       - key: CORS_ALLOWED_ORIGINS
         value: https://interview-frontend.onrender.com  # Frontend deploy sonrası gerçek URL'i buraya yazın
       - key: SESSION_COOKIE_SECURE
@@ -39,7 +39,7 @@ services:
     staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: https://interview-backend.onrender.com/api  # Backend deploy sonrası gerçek URL'i buraya yazın
+        value: https://interview-backend-zb9b.onrender.com/api  # Gerçek backend URL
 
 databases:
   # PostgreSQL Database
