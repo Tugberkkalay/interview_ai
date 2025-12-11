@@ -3,6 +3,8 @@ from . import views
 from . import profile_views
 
 urlpatterns = [
+    # Root endpoint
+    path('', views.api_root, name='api_root'),
     # Health check
     path('health/', views.health_check, name='health_check'),
     

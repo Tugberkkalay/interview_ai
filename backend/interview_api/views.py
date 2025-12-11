@@ -286,6 +286,31 @@ def complete_interview(request, token):
 
 
 @api_view(['GET'])
+def api_root(request):
+    """
+    GET /api/
+    
+    API root endpoint with available endpoints.
+    """
+    return Response({
+        'message': 'AI Interview Platform API',
+        'version': '1.0',
+        'endpoints': {
+            'health': '/api/health/',
+            'docs': '/api/docs/',
+            'auth': {
+                'register': '/api/auth/register/',
+                'login': '/api/auth/login/',
+            },
+            'session': {
+                'create': '/api/session/create/',
+                'get': '/api/session/{token}/',
+            }
+        }
+    })
+
+
+@api_view(['GET'])
 def health_check(request):
     """
     GET /api/health/
