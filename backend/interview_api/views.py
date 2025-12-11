@@ -25,7 +25,7 @@ def get_interview_data(request, token):
         session = get_object_or_404(InterviewSession, token=token)
         
         # Check if session is expired
-        if session.is_expired:
+        if session.is_expired():
             return Response(
                 {'error': 'Session expired'},
                 status=status.HTTP_410_GONE
@@ -38,6 +38,13 @@ def get_interview_data(request, token):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Check if ATS endpoint is configured
+        if not session.ats_data_endpoint:
+            return Response(
+                {'error': "ATS endpoint yapılandırılmamış"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
         # Mark session as active
         if session.status == 'pending':
             session.status = 'active'
@@ -45,16 +52,65 @@ def get_interview_data(request, token):
             session.save()
         
         # Fetch data from ATS endpoint
-        ats_data = ATSService.fetch_interview_data(
-            endpoint=session.ats_data_endpoint,
-            api_token=session.ats_api_token
-        )
+        # If endpoint is a test endpoint (localhost:9000), return mock data (development only)
+        is_development = not os.getenv('IS_RENDER') and not os.getenv('RENDER')
+        if is_development and session.ats_data_endpoint and 'localhost:9000' in session.ats_data_endpoint:
+            # Return test data directly for development
+            import json
+            test_data = {
+                "candidateName": "Test Kullanıcı",
+                "candidateEmail": "test@example.com",
+                "jobPosition": "Backend Developer",
+                "companyName": session.company.company_name if session.company else "Test Company",
+                "companyInfo": "Test şirketi için mülakat",
+                "jobDescription": "Python, Django, PostgreSQL ile backend geliştirme. 3+ yıl deneyim gereklidir.",
+                "candidateResume": json.dumps({
+                    "name": "Test",
+                    "surname": "Kullanıcı",
+                    "email": "test@example.com",
+                    "skills": ["Python", "Django", "PostgreSQL", "Docker"],
+                    "experience_summary": "3 yıl backend development deneyimi"
+                }),
+                "avatarId": "male",
+                "companyLogo": None
+            }
+            return Response(test_data)
         
-        return Response(ats_data)
+        try:
+            ats_data = ATSService.fetch_interview_data(
+                endpoint=session.ats_data_endpoint,
+                api_token=session.ats_api_token
+            )
+            return Response(ats_data)
+        except Exception as ats_error:
+            # Log the error for debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"ATS fetch failed for session {token}: {str(ats_error)}", exc_info=True)
+            
+            # Return user-friendly error message
+            error_msg = str(ats_error)
+            if 'Connection' in error_msg or 'timeout' in error_msg.lower() or 'ConnectionError' in error_msg:
+                error_msg = "ATS'den veri alınamadı: Bağlantı hatası"
+            elif '401' in error_msg or 'Unauthorized' in error_msg:
+                error_msg = "ATS'den veri alınamadı: Yetkilendirme hatası"
+            elif '404' in error_msg:
+                error_msg = "ATS'den veri alınamadı: Session bulunamadı"
+            elif "ATS'den veri alınamadı" not in error_msg:
+                error_msg = f"ATS'den veri alınamadı: {error_msg}"
+            
+            return Response(
+                {'error': error_msg},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
     except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in get_interview_data for token {token}: {str(e)}", exc_info=True)
+        
         return Response(
-            {'error': str(e)},
+            {'error': f'Mülakat verileri alınamadı: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -112,9 +168,9 @@ def create_session(request):
     if company:
         company.increment_usage()
     
-    # Generate interview link (HashRouter format: /interview#/token)
+    # Generate interview link
     frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175')
-    interview_link = f"{frontend_url}/interview#/{session.token}"
+    interview_link = f"{frontend_url}/interview/{session.token}"
     
     return Response(
         {
@@ -154,29 +210,72 @@ def parse_cv(request):
         )
 
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 def get_interview_prompt(request):
     """
-    GET /api/interview/prompt/
+    GET /api/interview/prompt/?position=...
+    POST /api/interview/prompt/
     
-    Get the interview prompt for a given job position.
+    Get the interview system prompt for a given job position.
+    POST body:
+    {
+        "jobPosition": "...",
+        "companyName": "...",
+        "companyInfo": "...",
+        "jobDescription": "...",
+        "candidateResume": {...},
+        "avatarId": "male" | "female"
+    }
     """
-    job_position = request.query_params.get('position', '')
+    if request.method == 'GET':
+        # Legacy GET support
+        job_position = request.query_params.get('position', '')
+        
+        if not job_position:
+            return Response(
+                {'error': 'Job position is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            prompt = GeminiService.get_interview_prompt(job_position)
+            return Response({'prompt': prompt}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
-    if not job_position:
-        return Response(
-            {'error': 'Job position is required'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
-    try:
-        prompt = GeminiService.get_interview_prompt(job_position)
-        return Response({'prompt': prompt}, status=status.HTTP_200_OK)
-    except Exception as e:
-        return Response(
-            {'error': str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+    else:  # POST
+        # Get data from request body
+        job_position = request.data.get('jobPosition', '')
+        company_name = request.data.get('companyName', '')
+        company_info = request.data.get('companyInfo', '')
+        job_description = request.data.get('jobDescription', '')
+        candidate_resume = request.data.get('candidateResume', {})
+        avatar_id = request.data.get('avatarId', 'female')
+        
+        if not job_position:
+            return Response(
+                {'error': 'jobPosition is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            system_prompt = GeminiService.get_interview_system_prompt(
+                job_position=job_position,
+                company_name=company_name,
+                company_info=company_info,
+                job_description=job_description,
+                candidate_resume=candidate_resume,
+                avatar_id=avatar_id
+            )
+            return Response({'systemPrompt': system_prompt}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 @api_view(['POST'])
@@ -265,7 +364,9 @@ def complete_interview(request, token):
         webhook_success = ATSService.send_report_to_webhook(
             webhook_url=session.ats_webhook_url,
             api_token=session.ats_api_token,
-            report=report_data
+            session_id=session.external_id,
+            report_data=report_data,
+            interview_token=str(session.token)
         )
         
         if not webhook_success:

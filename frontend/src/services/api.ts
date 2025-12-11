@@ -40,13 +40,37 @@ export async function fetchInterviewData(token: string): Promise<InterviewData> 
     });
 
     if (!response.ok) {
+      // Try to get error message from response
+      let errorMessage = 'Mülakat verileri alınamadı.';
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+          // Translate common ATS errors
+          if (errorMessage.includes("ATS'den veri alınamadı") || errorMessage.includes("ATS")) {
+            errorMessage = 'Mülakat sistemi ile bağlantı kurulamadı. Lütfen daha sonra tekrar deneyin.';
+          }
+        }
+      } catch (e) {
+        // If response is not JSON, use status-based messages
+      }
+
       if (response.status === 404) {
-        throw new Error('Geçersiz veya süresi dolmuş mülakat linki.');
+        throw new Error('Geçersiz mülakat linki.');
       }
       if (response.status === 410) {
-        throw new Error('Bu mülakat linki daha önce kullanılmış.');
+        throw new Error('Bu mülakat linkinin süresi dolmuş.');
       }
-      throw new Error('Mülakat verileri alınamadı.');
+      if (response.status === 400) {
+        if (errorMessage.includes('completed')) {
+          throw new Error('Bu mülakat daha önce tamamlanmış.');
+        }
+        throw new Error(errorMessage);
+      }
+      if (response.status === 500) {
+        throw new Error(errorMessage);
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();

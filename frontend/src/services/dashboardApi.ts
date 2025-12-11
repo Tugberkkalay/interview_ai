@@ -3,13 +3,18 @@
  * Backend ile iletişim için tüm API çağrıları
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000/api';
+
+// Debug: Log API URL in development
+if ((import.meta as any).env?.DEV) {
+  console.log('API Base URL:', API_BASE_URL);
+}
 
 // Helper function to handle responses
 async function handleResponse(response: Response) {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'An error occurred' }));
-    throw new Error(error.error || error.detail || 'Request failed');
+    throw new Error(error.error || error.detail || `Request failed with status ${response.status}`);
   }
   return response.json();
 }
@@ -73,15 +78,23 @@ export async function register(data: RegisterData): Promise<{ message: string; c
 }
 
 export async function login(data: LoginData): Promise<{ message: string; company: Company }> {
-  const response = await fetch(`${API_BASE_URL}/auth/login/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include', // Important for session cookies
-    body: JSON.stringify(data),
-  });
-  const result = await handleResponse(response);
-  // Map profile to company for backward compatibility
-  return { ...result, company: result.profile || result.company };
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/login/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // Important for session cookies
+      body: JSON.stringify(data),
+    });
+    const result = await handleResponse(response);
+    // Map profile to company for backward compatibility
+    return { ...result, company: result.profile || result.company };
+  } catch (error) {
+    // Handle network errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error(`Backend'e bağlanılamıyor. Lütfen backend'in çalıştığından emin olun. (${API_BASE_URL})`);
+    }
+    throw error;
+  }
 }
 
 export async function logout(): Promise<{ message: string }> {

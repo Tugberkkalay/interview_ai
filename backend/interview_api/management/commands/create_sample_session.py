@@ -73,6 +73,6 @@ Aranan Nitelikler:
             self.style.SUCCESS(f'\n✅ Örnek mülakat session\'ı oluşturuldu!')
         )
         self.stdout.write(f'\n📋 Token: {session.token}')
-        self.stdout.write(f'🔗 Link: {frontend_url}/interview#/{session.token}')
+        self.stdout.write(f'🔗 Link: {frontend_url}/interview/{session.token}')
         self.stdout.write(f'\n')
 

@@ -359,10 +359,10 @@ def dashboard_session_detail(request, token):
     except InterviewSession.DoesNotExist:
         return Response({'error': 'Session not found'}, status=status.HTTP_404_NOT_FOUND)
     
-    # Build interview link (HashRouter format: /interview#/token)
+    # Build interview link
     import os
     frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175')
-    interview_link = f"{frontend_url}/interview#/{session.token}"
+    interview_link = f"{frontend_url}/interview/{session.token}"
     
     # Mask sensitive ATS data
     ats_api_token_masked = session.ats_api_token[:10] + '...' if session.ats_api_token else None

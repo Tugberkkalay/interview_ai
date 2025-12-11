@@ -1,2 +1,12 @@
 @import "tailwindcss";
 
+/* Base styles to ensure CSS is loaded */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+

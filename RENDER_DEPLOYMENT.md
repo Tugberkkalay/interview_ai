@@ -110,7 +110,30 @@ SECURE_SSL_REDIRECT=True
 
 ---
 
-### 4. Database Migration
+### 4. Frontend Static Site Routing Yapılandırması (ÖNEMLİ!)
+
+Render static site'lar için SPA (Single Page Application) routing'i çalıştırmak için **manuel yapılandırma** gereklidir:
+
+1. Render Dashboard'da `interview-frontend` static site'ınızı açın
+2. **"Settings"** sekmesine gidin
+3. **"Redirects/Rewrites"** bölümünü bulun (veya "Custom Headers" altında olabilir)
+4. Yeni bir **Rewrite** kuralı ekleyin:
+   - **Source (Kaynak):** `/*`
+   - **Destination (Hedef):** `/index.html`
+   - **Action (Eylem):** `Rewrite` (Redirect değil!)
+   - **Status Code:** `200`
+
+Bu ayar, tüm route'ları `index.html`'e yönlendirerek React Router'ın client-side routing'ini çalıştırır.
+
+**Alternatif:** Eğer Render Dashboard'da "Redirects/Rewrites" seçeneği yoksa:
+- Render Support ile iletişime geçin veya
+- Backend'den frontend'e proxy yapılandırması yapın (daha karmaşık)
+
+**Not:** Bu yapılandırma olmadan direkt URL'lere erişim veya sayfa yenileme "Not Found" hatası verecektir.
+
+---
+
+### 5. Database Migration
 
 Web service deploy olduktan sonra:
 

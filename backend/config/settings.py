@@ -185,6 +185,8 @@ else:
         "http://127.0.0.1:5175",
         "http://127.0.0.1:5176",
         "http://127.0.0.1:5177",
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
     ]
 
 CORS_ALLOW_CREDENTIALS = True
