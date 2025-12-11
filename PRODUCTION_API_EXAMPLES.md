@@ -28,6 +28,39 @@ Bu dosya production ortamında mülakat oluşturmak için kullanabileceğiniz AP
 }
 ```
 
+### 📌 Alan Açıklamaları
+
+| Alan | Amaç | Format | Önem |
+|------|------|--------|------|
+| `external_session_id` | ATS sistemindeki session ID'si (referans için) | Herhangi bir string (max 200 karakter) | ⭐ Düşük - Sadece referans, format önemli değil |
+| `ats_data_endpoint` | ATS'den mülakat verilerini çekmek için URL | Geçerli HTTPS URL | ⭐⭐⭐⭐⭐ Çok önemli - Mülakat başladığında bu URL'e istek atılır |
+| `ats_webhook_url` | Mülakat raporunu göndermek için URL | Geçerli HTTPS URL | ⭐⭐⭐⭐⭐ Çok önemli - Rapor bu URL'e gönderilir |
+| `ats_api_token` | ATS API authentication token | String | ⭐⭐⭐⭐⭐ Çok önemli - ATS endpoint'lerine erişim için |
+| `expires_in_hours` | Mülakat linkinin geçerlilik süresi (saat) | Integer (varsayılan: 24) | ⭐⭐ Orta - Opsiyonel |
+
+**Önemli Notlar:**
+
+1. **`external_session_id`** (Bizde: `external_id`)
+   - **Amaç:** ATS sisteminizdeki session ID'si (referans için)
+   - **Format:** Herhangi bir string (max 200 karakter)
+   - **Örnekler:** 
+     - `"ATS-12345"`
+     - `"SESSION-2025-001"`
+     - `"12345"`
+     - `"interview_abc123"`
+   - **Önem:** ⭐ Düşük - Sadece referans ve webhook'a gönderme için kullanılır
+   - **Kullanım:** Webhook'a gönderilirken `session_id` olarak kullanılır
+
+2. **`ats_data_endpoint`** (Bizde: `ats_data_endpoint`)
+   - **Amaç:** ATS'den mülakat verilerini çekmek için URL
+   - **Format:** Geçerli HTTPS URL (mutlaka HTTPS olmalı)
+   - **Örnekler:**
+     - `"https://your-ats.com/api/interview-data/12345"`
+     - `"https://api.your-ats.com/v1/sessions/12345/data"`
+   - **Önem:** ⭐⭐⭐⭐⭐ Çok önemli - Mülakat başladığında backend bu URL'e GET isteği atar
+   - **Kullanım:** Aday mülakat linkine tıkladığında backend bu endpoint'e istek atar ve mülakat verilerini alır
+   - **Not:** URL formatı tamamen sizin belirlediğiniz şekilde olabilir, sadece geçerli bir HTTPS URL olması yeterli
+
 **Response (Success 201):**
 ```json
 {
@@ -311,16 +344,29 @@ func main() {
 
 ## 🔍 ATS Data Endpoint Formatı
 
-ATS'nizin sağlaması gereken endpoint formatı:
+### `ats_data_endpoint` Nasıl Çalışır?
+
+1. **Aday mülakat linkine tıklar:** `https://interview-frontend-zqga.onrender.com/interview/{token}`
+2. **Frontend backend'e istek atar:** `GET /api/session/{token}/`
+3. **Backend `ats_data_endpoint`'e istek atar:**
+   ```bash
+   GET {ats_data_endpoint}
+   Headers: Authorization: Bearer {ats_api_token}
+   ```
+4. **ATS mülakat verilerini döner**
+5. **Backend verileri frontend'e iletir**
+
+### Endpoint Formatı
 
 **GET** `{ats_data_endpoint}`
 
 **Headers:**
 ```
 Authorization: Bearer {ats_api_token}
+Content-Type: application/json
 ```
 
-**Response:**
+**Response (200 OK):**
 ```json
 {
   "candidateName": "Ahmet Yılmaz",
@@ -341,6 +387,18 @@ Authorization: Bearer {ats_api_token}
   ]
 }
 ```
+
+**Örnek Endpoint Formatları:**
+- ✅ `https://your-ats.com/api/interview-data/12345`
+- ✅ `https://your-ats.com/api/sessions/12345/data`
+- ✅ `https://api.your-ats.com/v1/interviews/12345`
+- ❌ `http://your-ats.com/...` (HTTPS olmalı)
+- ❌ `your-ats.com/...` (Protocol olmalı)
+
+**Önemli:** 
+- URL formatı tamamen sizin belirlediğiniz şekilde olabilir
+- Sadece geçerli bir HTTPS URL olması yeterli
+- Backend bu URL'e GET isteği atacak ve JSON response bekleyecek
 
 ---
 
