@@ -2,7 +2,7 @@
  * Cloudflare Pages Middleware
  * Handles SPA routing by serving index.html for all non-file requests
  */
-export function onRequest(context) {
+export async function onRequest(context) {
   const { request, next } = context;
   const url = new URL(request.url);
   
@@ -11,7 +11,13 @@ export function onRequest(context) {
     return next();
   }
   
+  // If it's already index.html, serve it normally
+  if (url.pathname === '/index.html' || url.pathname === '/') {
+    return next();
+  }
+  
   // For all other routes (SPA routes), serve index.html
   // This allows React Router to handle client-side routing
-  return next(new Request(new URL('/index.html', request.url), request));
+  const indexUrl = new URL('/index.html', request.url);
+  return next(new Request(indexUrl, request));
 }
