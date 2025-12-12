@@ -1,0 +1,11 @@
+name = "plena-interview"
+compatibility_date = "2025-12-12"
+
+# Static site assets
+[site]
+bucket = "./dist"
+
+# SPA routing support
+[[routes]]
+pattern = "/*"
+
