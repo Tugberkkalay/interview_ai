@@ -71,7 +71,7 @@ export const SiteAssistantButton: React.FC = () => {
   // Audio buffer for pending audio chunks (when input is disabled)
   const audioBufferRef = useRef<Float32Array[]>([]);
   const pendingAudioChunksRef = useRef<Blob[]>([]);
-  const shouldBufferAudioRef = useRef<boolean>(false); // Sadece AI konuşmasının son 500ms'inde true olacak
+  const shouldBufferAudioRef = useRef<boolean>(false); // Sadece AI konuşmasının son 250ms'inde true olacak
   const bufferStartTimerRef = useRef<NodeJS.Timeout | null>(null); // Buffer başlatma timer'ı
   
   // Transcript
@@ -432,7 +432,7 @@ ASLA YAPMA:
 - Kullanıcıyı sorusuz bırakma. Her cevabın sonunda mutlaka bir sonraki adımı tetikleyen bir soru sor.
 
 KULLANICI CEVAP VERMEZSE:
-- Eğer kullanıcı 5 saniye içinde cevap vermezse, sistem otomatik olarak bir follow-up mesajı gönderecek.
+- Eğer kullanıcı 10 saniye içinde cevap vermezse, sistem otomatik olarak bir follow-up mesajı gönderecek.
 - Bu durumda nazikçe "Merhaba, hala orada mısınız?" gibi bir mesajla devam edebilirsin.
 - Kullanıcıyı rahatsız etmeden, nazik bir şekilde konuşmayı canlı tut.
 
@@ -620,7 +620,7 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                             session.sendRealtimeInput({ media: pcmBlob });
                         });
                             } else {
-                                // Input disabled - ama sadece AI konuşmasının son 500ms'inde buffer'a ekle
+                                // Input disabled - ama sadece AI konuşmasının son 250ms'inde buffer'a ekle
                                 if (shouldBufferAudioRef.current) {
                                     pendingAudioChunksRef.current.push(pcmBlob);
                                 }
@@ -643,7 +643,7 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                                         session.sendRealtimeInput({ media: pcmBlob });
                                     });
                                 } else {
-                                    // Input disabled - ama sadece AI konuşmasının son 500ms'inde buffer'a ekle
+                                    // Input disabled - ama sadece AI konuşmasının son 250ms'inde buffer'a ekle
                                     if (shouldBufferAudioRef.current) {
                                         pendingAudioChunksRef.current.push(pcmBlob);
                                     }
@@ -887,18 +887,18 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                             // AI konuşmasının süresini hesapla (milisaniye cinsinden)
                             const audioDurationMs = audioBuffer.duration * 1000;
                             
-                            // Eğer konuşma 500ms'den uzunsa, son 500ms'de buffer'ı aktif et
-                            if (audioDurationMs > 500) {
-                                const bufferStartDelay = audioDurationMs - 500; // Son 500ms'den önce başlat
+                            // Eğer konuşma 250ms'den uzunsa, son 250ms'de buffer'ı aktif et
+                            if (audioDurationMs > 250) {
+                                const bufferStartDelay = audioDurationMs - 250; // Son 250ms'den önce başlat
                                 
                                 bufferStartTimerRef.current = setTimeout(() => {
                                     if (isSessionActiveRef.current && audioSourcesRef.current.size > 0) {
                                         shouldBufferAudioRef.current = true;
-                                        console.log("AI speech ending soon - starting to buffer user audio (last 500ms)");
+                                        console.log("AI speech ending soon - starting to buffer user audio (last 250ms)");
                                     }
                                 }, bufferStartDelay);
                             } else {
-                                // Eğer konuşma 500ms'den kısaysa, hemen buffer'ı aktif et
+                                // Eğer konuşma 250ms'den kısaysa, hemen buffer'ı aktif et
                                 shouldBufferAudioRef.current = true;
                                 console.log("AI speech is short - buffering user audio immediately");
                             }
@@ -935,12 +935,12 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                                                 // İlk kullanıcı konuşması için flag'i sıfırla (eğer henüz konuşmadıysa)
                                                 // Bu sayede ilk konuşma için daha hassas threshold kullanılır
                                                 
-                                                // Buffer'da bekleyen audio chunk'ları hızlıca gönder (sadece son 500ms'deki)
+                                                // Buffer'da bekleyen audio chunk'ları hızlıca gönder (sadece son 250ms'deki)
                                                 if (pendingAudioChunksRef.current.length > 0) {
                                                     const chunks = [...pendingAudioChunksRef.current];
                                                     pendingAudioChunksRef.current = [];
                                                     
-                                                    console.log(`Flushing ${chunks.length} pending audio chunks from last 500ms after AI finished speaking`);
+                                                    console.log(`Flushing ${chunks.length} pending audio chunks from last 250ms after AI finished speaking`);
                                                     
                                                     // Buffer'daki chunk'ları çok hızlı gönder (2ms aralıklarla)
                                                     chunks.forEach((chunk, index) => {
@@ -952,7 +952,7 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                                                     });
                                                 }
                                                 
-                                                // Kullanıcı 5 saniye içinde cevap vermezse AI tekrar konuşsun
+                                                // Kullanıcı 10 saniye içinde cevap vermezse AI tekrar konuşsun
                                                 // Önceki timer'ı temizle
                                                 if (followUpTimerRef.current) {
                                                     clearTimeout(followUpTimerRef.current);
@@ -963,13 +963,13 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                                                     setCountdown(null);
                                                 }
                                                 
-                                                // 5 saniye sonra kullanıcı hala konuşmamışsa follow-up gönder
+                                                // 10 saniye sonra kullanıcı hala konuşmamışsa follow-up gönder
                                                 followUpTimerRef.current = setTimeout(() => {
                                                     if (isSessionActiveRef.current && 
                                                         !isUserSpeakingRef.current && 
                                                         audioSourcesRef.current.size === 0 &&
                                                         isInputEnabledRef.current) {
-                                                        console.log("User hasn't responded in 5 seconds - sending first follow-up");
+                                                        console.log("User hasn't responded in 10 seconds - sending first follow-up");
                                                         // Session'ı kontrol et ve mesajı gönder
                                                         sessionPromise.then(session => {
                                                             if (!session) {
@@ -983,7 +983,7 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                                                                 });
                                                                 console.log("Follow-up message sent successfully");
                                                                 
-                                                                // İlk follow-up'tan 5 saniye sonra hala cevap yoksa timeout uyarısı gönder
+                                                                // İlk follow-up'tan 30 saniye sonra hala cevap yoksa timeout uyarısı gönder
                                                                 followUpTimerRef.current = setTimeout(() => {
                                                                     if (isSessionActiveRef.current && 
                                                                         !isUserSpeakingRef.current && 
@@ -1028,7 +1028,7 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                                                                             console.error("Error sending timeout warning:", err);
                                                                         });
                                                                     }
-                                                                }, 5000); // İlk follow-up'tan 5 saniye sonra
+                                                                }, 30000); // İlk follow-up'tan 30 saniye sonra
                                                             } catch (err) {
                                                                 console.error("Error sending follow-up message:", err);
                                                             }
@@ -1036,7 +1036,7 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
                                                             console.error("Error getting session for follow-up:", err);
                                                         });
                                                     }
-                                                }, 5000); // 5 saniye bekle
+                                                }, 10000); // 10 saniye bekle
                                             }
                                         }, 50); // 100ms yerine 50ms - daha hızlı yanıt
                                     }
