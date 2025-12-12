@@ -1,7 +1,8 @@
-name = "plena-interview"
+name = "plenainterview"
+main = "worker.js"
 compatibility_date = "2025-12-12"
 
-# Static site assets (new format)
 [assets]
 directory = "./dist"
+
 
