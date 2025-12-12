@@ -14,8 +14,11 @@ import {
 const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true';
 
 export const IntegratedInterviewPage: React.FC = () => {
-  const { token } = useParams<{ token: string }>();
+  const { token: rawToken } = useParams<{ token: string }>();
   const navigate = useNavigate();
+
+  // Normalize token - remove any slashes or extra characters
+  const token = rawToken?.replace(/^\/+|\/+$/g, '') || null;
 
   const [loadingState, setLoadingState] = useState<'loading' | 'ready' | 'error' | 'completed'>('loading');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -26,6 +29,7 @@ export const IntegratedInterviewPage: React.FC = () => {
   useEffect(() => {
     const loadInterviewData = async () => {
       if (!token) {
+        console.error('Token not found in URL params:', rawToken);
         setErrorMsg('Geçersiz mülakat linki. Token bulunamadı.');
         setLoadingState('error');
         return;

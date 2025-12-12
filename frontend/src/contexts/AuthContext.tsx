@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Company, getMe, login as apiLogin, logout as apiLogout, register as apiRegister, LoginData, RegisterData } from '../services/dashboardApi';
 
 interface AuthContextType {
@@ -16,11 +17,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   // Check if user is authenticated on mount
+  // Skip auth check for public interview pages (token-based links)
   useEffect(() => {
+    // Don't check auth for interview pages - they are public
+    const isInterviewPage = location.pathname.startsWith('/interview/');
+    if (isInterviewPage) {
+      setLoading(false);
+      return;
+    }
+    
     checkAuth();
-  }, []);
+  }, [location.pathname]);
 
   const checkAuth = async () => {
     try {

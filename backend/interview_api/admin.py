@@ -109,7 +109,7 @@ class InterviewSessionAdmin(admin.ModelAdmin):
         """Display interview link"""
         if obj.token:
             import os
-            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175')
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175').rstrip('/')
             link = f"{frontend_url}/interview/{obj.token}"
             return format_html(
                 '<a href="{}" target="_blank" style="color: #3b82f6; text-decoration: underline;">{}</a>',
@@ -124,7 +124,7 @@ class InterviewSessionAdmin(admin.ModelAdmin):
         try:
             if obj.token:
                 import os
-                frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175')
+                frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175').rstrip('/')
                 link = f"{frontend_url}/interview/{obj.token}"
                 # Check if accessible safely
                 is_accessible = False

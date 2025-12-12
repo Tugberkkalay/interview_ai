@@ -67,7 +67,7 @@ Aranan Nitelikler:
         )
 
         import os
-        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175')
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175').rstrip('/')
         
         self.stdout.write(
             self.style.SUCCESS(f'\n✅ Örnek mülakat session\'ı oluşturuldu!')

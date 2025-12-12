@@ -361,7 +361,7 @@ def dashboard_session_detail(request, token):
     
     # Build interview link
     import os
-    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175')
+    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175').rstrip('/')
     interview_link = f"{frontend_url}/interview/{session.token}"
     
     # Mask sensitive ATS data

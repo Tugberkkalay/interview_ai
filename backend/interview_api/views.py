@@ -169,7 +169,7 @@ def create_session(request):
         company.increment_usage()
     
     # Generate interview link
-    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175')
+    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175').rstrip('/')
     interview_link = f"{frontend_url}/interview/{session.token}"
     
     return Response(
