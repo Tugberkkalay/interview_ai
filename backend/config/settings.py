@@ -169,9 +169,13 @@ if IS_RENDER:
     # Production CORS - from environment variable
     cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if os.getenv('CORS_ALLOWED_ORIGINS') else []
     CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins if origin.strip()]
-    # Fallback: if empty, allow all (not recommended but prevents errors)
-    if not CORS_ALLOWED_ORIGINS:
-        CORS_ALLOWED_ORIGINS = ['*']  # Temporary fallback - should be set in production
+    # Note: CORS_ALLOW_CREDENTIALS = True olduğu için '*' kullanılamaz
+    # Environment variable'da domain'leri belirtmelisiniz
+    # Örnek: CORS_ALLOWED_ORIGINS=https://plena-interview.qtale.io,https://plena-interview.pages.dev
+    
+    # Debug: Log CORS origins (remove in production if sensitive)
+    if DEBUG:
+        print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 else:
     # Development CORS
     CORS_ALLOWED_ORIGINS = [
@@ -190,6 +194,19 @@ else:
     ]
 
 CORS_ALLOW_CREDENTIALS = True
+# Preflight request için gerekli ayarlar
+CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # CSRF Settings
 # Cross-origin için CSRF cookie ayarları
