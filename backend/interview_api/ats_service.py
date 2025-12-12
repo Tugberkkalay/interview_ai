@@ -19,7 +19,21 @@ class ATSService:
         Fetch interview data from ATS
         This data passes through us (proxy) but is NOT stored
         """
+        if not endpoint:
+            raise Exception("ATS endpoint boş")
+        
+        if not api_token:
+            raise Exception("ATS API token boş")
+        
+        # Check if endpoint is localhost (won't work in production)
+        import os
+        is_production = os.getenv('IS_RENDER') or os.getenv('RENDER')
+        if is_production and ('localhost' in endpoint or '127.0.0.1' in endpoint):
+            logger.error(f"Invalid ATS endpoint in production: {endpoint}")
+            raise Exception("ATS endpoint localhost olarak ayarlanmış. Production'da external URL kullanılmalı.")
+        
         try:
+            logger.info(f"Fetching from ATS endpoint: {endpoint}")
             response = requests.get(
                 endpoint,
                 headers={
@@ -29,13 +43,32 @@ class ATSService:
                 timeout=10
             )
             
+            logger.info(f"ATS response status: {response.status_code}")
+            
             if response.status_code == 200:
-                return response.json()
+                try:
+                    data = response.json()
+                    logger.info(f"Successfully parsed ATS response")
+                    return data
+                except ValueError as json_error:
+                    logger.error(f"Failed to parse ATS JSON response: {str(json_error)}")
+                    raise Exception(f"ATS'den geçersiz JSON yanıtı alındı")
             else:
-                raise Exception(f"ATS returned status {response.status_code}")
+                error_text = response.text[:200] if response.text else "No error message"
+                logger.error(f"ATS returned status {response.status_code}: {error_text}")
+                raise Exception(f"ATS returned status {response.status_code}: {error_text}")
                 
+        except requests.exceptions.Timeout:
+            logger.error(f"ATS request timeout for {endpoint}")
+            raise Exception("ATS'den veri alınamadı: Zaman aşımı")
+        except requests.exceptions.ConnectionError as conn_error:
+            logger.error(f"ATS connection error for {endpoint}: {str(conn_error)}")
+            # Check if it's a localhost connection error
+            if 'localhost' in endpoint or '127.0.0.1' in endpoint:
+                raise Exception("ATS endpoint localhost olarak ayarlanmış. Production'da external URL kullanılmalı.")
+            raise Exception("ATS'den veri alınamadı: Bağlantı hatası")
         except Exception as e:
-            logger.error(f"ATS data fetch failed: {str(e)}")
+            logger.error(f"ATS data fetch failed for {endpoint}: {str(e)}", exc_info=True)
             raise Exception(f"ATS'den veri alınamadı: {str(e)}")
     
     @staticmethod

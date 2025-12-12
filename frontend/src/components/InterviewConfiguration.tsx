@@ -3,6 +3,9 @@ import { AvatarId } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
+import { KnowledgeItem } from '../services/api';
+import sampleConfigs from '../data/sampleConfigs.json';
+
 interface InterviewConfigurationProps {
   onStart: (config: {
     jobPosition: string;
@@ -11,46 +14,10 @@ interface InterviewConfigurationProps {
     jobDescription: string;
     candidateResume: string;
     selectedAvatar: AvatarId;
+    companyKnowledge?: KnowledgeItem[];
   }) => void;
   onError: (msg: string) => void;
 }
-
-const SAMPLE_JSON_CV = JSON.stringify({
-  "name": "Ayşe",
-  "surname": "Yılmaz",
-  "email": "ayse.yilmaz@ornekmail.com",
-  "city": "Ankara",
-  "country": "Türkiye",
-  "skills": [
-    "Full Stack Development",
-    "Node.js",
-    "React",
-    "Next.js",
-    "PostgreSQL",
-    "Docker",
-    "AWS Services",
-    "Agile Methodologies"
-  ],
-  "education_summary": "Orta Doğu Teknik Üniversitesi (ODTÜ) Bilgisayar Mühendisliği Lisans Derecesi.",
-  "experience_summary": "Ölçeklenebilir web uygulamaları ve bulut mimarisi üzerine odaklanmış 6 yıllık Full Stack geliştirme deneyimi.",
-  "work_experience_details": [
-    {
-      "company": "TechNova Teknoloji",
-      "position": "Senior Full Stack Developer",
-      "is_ongoing": true,
-      "start_date": "2021-03",
-      "description": "Mikroservis mimarisine geçiş sürecini yönetiyor, Node.js ve AWS kullanarak yüksek trafikli API'ler geliştiriyorum."
-    },
-    {
-      "company": "Softalya Yazılım",
-      "position": "Yazılım Geliştirici",
-      "is_ongoing": false,
-      "start_date": "2018-06",
-      "end_date": "2021-02",
-      "description": "React ve Python kullanarak kurumsal web uygulamaları ve iç yönetim panelleri geliştirdim."
-    }
-  ]
-}, null, 2);
 
 export const InterviewConfiguration: React.FC<InterviewConfigurationProps> = ({ onStart, onError }) => {
   // Settings State
@@ -60,10 +27,20 @@ export const InterviewConfiguration: React.FC<InterviewConfigurationProps> = ({ 
   const [jobDescription, setJobDescription] = useState("");
   const [candidateResume, setCandidateResume] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarId>('female');
+  const [companyKnowledgeJson, setCompanyKnowledgeJson] = useState("");
   
   // Parsing State
   const [isParsing, setIsParsing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Validation: Check if all required fields are filled
+  const isFormValid = () => {
+    return (
+      jobPosition.trim() !== '' &&
+      jobDescription.trim() !== '' &&
+      candidateResume.trim() !== ''
+    );
+  };
 
   const startInterview = () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -78,13 +55,41 @@ export const InterviewConfiguration: React.FC<InterviewConfigurationProps> = ({ 
         return;
     }
 
+    if(!jobDescription.trim()) {
+        setErrorMsg("Lütfen iş tanımı giriniz.");
+        onError("Lütfen iş tanımı giriniz.");
+        return;
+    }
+
+    if(!candidateResume.trim()) {
+        setErrorMsg("Lütfen aday profili (CV) giriniz.");
+        onError("Lütfen aday profili (CV) giriniz.");
+        return;
+    }
+
+    // Parse companyKnowledge if provided
+    let companyKnowledge: KnowledgeItem[] | undefined = undefined;
+    if (companyKnowledgeJson.trim()) {
+      try {
+        companyKnowledge = JSON.parse(companyKnowledgeJson);
+        if (!Array.isArray(companyKnowledge)) {
+          throw new Error("Company knowledge must be an array");
+        }
+      } catch (e) {
+        setErrorMsg("Company Knowledge JSON formatı geçersiz. Lütfen düzeltin veya boş bırakın.");
+        onError("Company Knowledge JSON formatı geçersiz.");
+        return;
+      }
+    }
+
     onStart({
       jobPosition,
       companyName,
       companyInfo,
       jobDescription,
       candidateResume,
-      selectedAvatar
+      selectedAvatar,
+      companyKnowledge
     });
     setErrorMsg(null);
   };
@@ -140,14 +145,39 @@ export const InterviewConfiguration: React.FC<InterviewConfigurationProps> = ({ 
       }
   };
 
+  const loadRandomSample = () => {
+    const randomIndex = Math.floor(Math.random() * sampleConfigs.length);
+    const sample = sampleConfigs[randomIndex];
+    
+    setJobPosition(sample.jobPosition);
+    setCompanyName(sample.companyName);
+    setCompanyInfo(sample.companyInfo);
+    setJobDescription(sample.jobDescription);
+    setCandidateResume(JSON.stringify(sample.candidateResume, null, 2));
+    setSelectedAvatar(sample.selectedAvatar as AvatarId);
+    setCompanyKnowledgeJson(JSON.stringify(sample.companyKnowledge, null, 2));
+    setErrorMsg(null);
+  };
+
   return (
     <div className="w-full max-w-[1080px] animate-fade-in-up">
       
-      <div className="mb-8 text-center md:text-left">
+      <div className="mb-8 text-center md:text-left relative">
           <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white mb-2">
               Mülakat <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Konfigürasyonu</span>
           </h1>
           <p className="text-slate-400">Yapay zeka simülasyonunu başlatmak için aşağıdaki adımları tamamlayın.</p>
+          
+          {/* Örnek Ekle Butonu - Sağ Üst */}
+          <button
+            onClick={loadRandomSample}
+            className="absolute top-0 right-0 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl font-bold text-sm transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Örnek Ekle
+          </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -267,6 +297,19 @@ export const InterviewConfiguration: React.FC<InterviewConfigurationProps> = ({ 
                                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 transition-all font-mono text-sm resize-none h-24"
                               />
                           </div>
+
+                          <div className="flex-none flex flex-col space-y-1.5">
+                              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">
+                                  Şirket Bilgisi (Opsiyonel - JSON)
+                                  <span className="text-[10px] text-slate-500 ml-1">work_culture, benefits, hiring_process</span>
+                              </label>
+                              <textarea 
+                                  value={companyKnowledgeJson}
+                                  onChange={(e) => setCompanyKnowledgeJson(e.target.value)}
+                                  placeholder='[{"category": "work_culture", "keywords": ["kültür", "ortam"], "content": "..."}]'
+                                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 transition-all font-mono text-xs resize-none h-20"
+                              />
+                          </div>
                       </div>
                   </div>
               </div>
@@ -278,18 +321,10 @@ export const InterviewConfiguration: React.FC<InterviewConfigurationProps> = ({ 
                   <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-white select-none transition-opacity group-hover:opacity-20">04</div>
                   
                   <div className="relative z-10 flex flex-col h-full">
-                      <div className="flex justify-between items-center mb-4">
-                          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                              <span className="w-1 h-6 bg-pink-500 rounded-full shadow-[0_0_10px_#ec4899]"></span> 
-                              Aday Profili
-                          </h3>
-                          <button 
-                              onClick={() => setCandidateResume(SAMPLE_JSON_CV)} 
-                              className="text-[10px] px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-400 border border-white/5 transition-colors"
-                          >
-                              Örnek Yükle
-                          </button>
-                      </div>
+                      <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                          <span className="w-1 h-6 bg-pink-500 rounded-full shadow-[0_0_10px_#ec4899]"></span> 
+                          Aday Profili
+                      </h3>
                       
                       {/* Drag & Drop Area */}
                        <div className="relative group/upload mb-4">
@@ -345,10 +380,17 @@ export const InterviewConfiguration: React.FC<InterviewConfigurationProps> = ({ 
           <div className="md:col-span-12 mt-2">
                <button 
                   onClick={startInterview}
-                  className="relative w-full py-5 bg-white text-black font-black text-xl rounded-2xl overflow-hidden group/btn hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 shadow-[0_0_40px_rgba(255,255,255,0.1)]"
+                  disabled={!isFormValid()}
+                  className={`relative w-full py-5 font-black text-xl rounded-2xl overflow-hidden group/btn transition-all duration-300 ${
+                    isFormValid()
+                      ? 'bg-white text-black hover:scale-[1.01] active:scale-[0.99] shadow-[0_0_40px_rgba(255,255,255,0.1)]'
+                      : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50'
+                  }`}
               >
-                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"></div>
-                  <span className="relative flex items-center justify-center gap-3 group-hover/btn:text-white transition-colors duration-300">
+                  {isFormValid() && (
+                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"></div>
+                  )}
+                  <span className={`relative flex items-center justify-center gap-3 transition-colors duration-300 ${isFormValid() ? 'group-hover/btn:text-white' : ''}`}>
                       MÜLAKAT SİMÜLASYONUNU BAŞLAT
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />

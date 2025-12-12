@@ -255,22 +255,81 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
               body: JSON.stringify({
                   transcript: transcriptRef.current,
                   candidateName: 'Aday',
-                  jobPosition: jobPosition
+                  jobPosition: jobPosition,
+                  jobDescription: jobDescription
               })
           });
 
           if (!response.ok) {
-              throw new Error('Rapor oluşturulamadı');
+              // Detaylı hata mesajı al
+              let errorMessage = 'Rapor oluşturulamadı';
+              try {
+                  const errorData = await response.json();
+                  errorMessage = errorData.error || errorMessage;
+              } catch {
+                  errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+              }
+              console.error(`Backend rapor hatası (${response.status}):`, errorMessage);
+              throw new Error(errorMessage);
           }
 
           const data = await response.json();
+          
+          // Response formatını kontrol et
+          if (!data.report) {
+              console.error("Backend'den dönen response'da 'report' field'ı yok:", data);
+              throw new Error("Backend response formatı hatalı: 'report' field'ı bulunamadı");
+          }
+          
           const reportData = data.report as InterviewReport;
           reportData.transcript = transcriptRef.current;
           onEnd(reportData);
 
       } catch (e) {
-          console.error("Fallback generation failed:", e);
-          onEnd();
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          console.error("Fallback generation failed:", {
+              error: errorMessage,
+              transcriptLength: transcriptRef.current.length,
+              apiUrl: `${API_BASE_URL}/interview/report/`
+          });
+          
+          // Backend'den rapor alınamazsa, transcript'ten gerçek verilerle minimal rapor oluştur
+          // Mock data değil, gerçek transcript verilerinden çıkarılan bilgiler
+          const transcriptText = transcriptRef.current.map(item => `${item.role}: ${item.text}`).join('\n');
+          const candidateMessages = transcriptRef.current.filter(item => item.role === 'Aday' || item.role === 'user');
+          const interviewerMessages = transcriptRef.current.filter(item => item.role === 'Uzman' || item.role === 'model');
+          
+          // Transcript'ten gerçek bilgileri çıkar
+          const fallbackReport: InterviewReport = {
+              candidateName: 'Aday',
+              overallScore: 50, // Orta seviye, gerçek değerlendirme yapılamadı
+              duration: `${Math.floor(transcriptRef.current.length * 0.5)} dakika`, // Tahmini süre
+              categoryScores: {
+                  technical: 50,
+                  communication: 50,
+                  problemSolving: 50,
+                  culturalFit: 50,
+                  confidence: 50
+              },
+              visualAnalysis: {
+                  attire: 'Görüntü analizi yapılamadı - bağlantı kesildi',
+                  environment: 'Görüntü analizi yapılamadı - bağlantı kesildi',
+                  bodyLanguage: 'Görüntü analizi yapılamadı - bağlantı kesildi',
+                  eyeContact: 'Görüntü analizi yapılamadı - bağlantı kesildi'
+              },
+              behavioralAnalysis: {
+                  reactionSpeed: 'Davranışsal analiz yapılamadı - bağlantı kesildi',
+                  stressManagement: 'Davranışsal analiz yapılamadı - bağlantı kesildi',
+                  toneOfVoice: 'Davranışsal analiz yapılamadı - bağlantı kesildi'
+              },
+              keyStrengths: candidateMessages.length > 0 ? ['Mülakat sırasında iletişim kuruldu'] : [],
+              areasForImprovement: ['Bağlantı kesildiği için detaylı değerlendirme yapılamadı'],
+              summary: `Mülakat sırasında bağlantı kesildi. ${candidateMessages.length} aday mesajı ve ${interviewerMessages.length} uzman mesajı kaydedildi. Detaylı değerlendirme için mülakatın tamamlanması gerekmektedir.\n\nTranskript özeti:\n${transcriptText.substring(0, 500)}...`,
+              hiringRecommendation: 'Maybe',
+              transcript: transcriptRef.current
+          };
+          
+          onEnd(fallbackReport);
       }
   };
 
@@ -417,11 +476,13 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
             }
         };
 
-        const aiVoice = avatarId === 'female' ? "Kore" : "Fenrir";
+        // Try alternative voice names if Fenrir doesn't work
+        // Common Gemini Live API voice names: Kore (female), Fenrir (male), Charon (male), Aoede (female)
+        const aiVoice = avatarId === 'female' ? "Kore" : "Charon"; // Changed from Fenrir to Charon
 
         // systemPrompt zaten backend'den geldi (yukarıda)
 
-        console.log("Connecting to Gemini Live API...");
+        console.log("Connecting to Gemini Live API...", { avatarId, aiVoice });
         const sessionPromise = ai.live.connect({
             model: 'gemini-2.5-flash-native-audio-preview-09-2025',
             config: {
@@ -511,8 +572,21 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                         hasOutputTranscription: !!msg.serverContent?.outputTranscription,
                         hasAudio: !!msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data,
                         hasToolCall: !!msg.toolCall,
-                        interrupted: !!msg.serverContent?.interrupted
+                        interrupted: !!msg.serverContent?.interrupted,
+                        fullMessage: msg
                     });
+                    
+                    // Debug: Log the full structure to understand why audio might be missing
+                    if (msg.serverContent?.modelTurn) {
+                        console.log("Model turn structure:", {
+                            parts: msg.serverContent.modelTurn.parts,
+                            partsLength: msg.serverContent.modelTurn.parts?.length,
+                            firstPart: msg.serverContent.modelTurn.parts?.[0],
+                            hasInlineData: !!msg.serverContent.modelTurn.parts?.[0]?.inlineData,
+                            inlineDataType: msg.serverContent.modelTurn.parts?.[0]?.inlineData?.mimeType,
+                            inlineDataSize: msg.serverContent.modelTurn.parts?.[0]?.inlineData?.data?.length
+                        });
+                    }
                     
                     const addToTranscript = (role: string, text: string) => {
                         const lastItem = transcriptRef.current[transcriptRef.current.length - 1];
@@ -659,7 +733,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
                     }
                 },
                 onerror: (e) => { 
-                    console.error("Session Error:", e);
+                    console.error("Session Error:", e, { avatarId, aiVoice });
                     if (isSessionActiveRef.current && !hasGeneratedReportRef.current) {
                          generateFallbackReport();
                     }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getDashboardStats, getUsageChart, DashboardStats, DailyUsage } from '../services/dashboardApi';
-import DashboardLayout from '../components/DashboardLayout';
+import DashboardLayout from '../components/DashboardLayout.tsx';
 
 export default function DashboardPage() {
   const { company } = useAuth();

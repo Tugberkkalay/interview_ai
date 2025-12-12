@@ -90,33 +90,33 @@ export const InterviewReport: React.FC<InterviewReportProps> = ({ report, jobPos
                 <div className="absolute top-0 right-0 p-32 bg-blue-600/10 blur-[100px] rounded-full"></div>
                 
                 <div className="relative group z-10">
-                    <div className={`w-32 h-32 rounded-full flex items-center justify-center border-4 ${report.overallScore >= 80 ? 'border-green-500' : report.overallScore >= 60 ? 'border-yellow-500' : 'border-red-500'} bg-black shadow-2xl transition-transform transform group-hover:scale-105`}>
-                        <span className="text-5xl font-black text-white">{report.overallScore}</span>
+                    <div className={`w-32 h-32 rounded-full flex items-center justify-center border-4 ${(report.overallScore || 0) >= 80 ? 'border-green-500' : (report.overallScore || 0) >= 60 ? 'border-yellow-500' : 'border-red-500'} bg-black shadow-2xl transition-transform transform group-hover:scale-105`}>
+                        <span className="text-5xl font-black text-white">{report.overallScore || 0}</span>
                     </div>
                     <div className="absolute -bottom-3 -right-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg uppercase tracking-wider border border-white/10">
                         Skor
                     </div>
                 </div>
                 <div className="flex-1 text-center md:text-left z-10">
-                    <h2 className="text-4xl font-black text-white tracking-tight">{report.candidateName}</h2>
+                    <h2 className="text-4xl font-black text-white tracking-tight">{report.candidateName || 'Aday'}</h2>
                     <p className="text-slate-400 text-xl mb-4 font-light">{jobPosition} {companyName && <span className="text-slate-500">at {companyName}</span>}</p>
                     <div className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm tracking-wide border backdrop-blur-md ${
-                        report.hiringRecommendation === 'Strong Hire' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
-                        report.hiringRecommendation === 'Hire' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
-                        report.hiringRecommendation === 'Maybe' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
+                        (report.hiringRecommendation || 'Maybe') === 'Strong Hire' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
+                        (report.hiringRecommendation || 'Maybe') === 'Hire' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+                        (report.hiringRecommendation || 'Maybe') === 'Maybe' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
                         'bg-red-500/10 text-red-400 border-red-500/30'
                     }`}>
                         <span className="w-2 h-2 rounded-full bg-current animate-pulse"></span>
-                        KARAR: {report.hiringRecommendation.toUpperCase()}
+                        KARAR: {(report.hiringRecommendation || 'Maybe').toUpperCase()}
                     </div>
                 </div>
                 <div className="w-full md:w-auto flex justify-center p-6 bg-black/40 rounded-2xl border border-white/5 z-10">
                      <RadarChart data={[
-                         { label: 'Teknik', value: report.categoryScores.technical },
-                         { label: 'İletişim', value: report.categoryScores.communication },
-                         { label: 'Problem', value: report.categoryScores.problemSolving },
-                         { label: 'Kültür', value: report.categoryScores.culturalFit },
-                         { label: 'Özgüven', value: report.categoryScores.confidence },
+                         { label: 'Teknik', value: report.categoryScores?.technical || 0 },
+                         { label: 'İletişim', value: report.categoryScores?.communication || 0 },
+                         { label: 'Problem', value: report.categoryScores?.problemSolving || 0 },
+                         { label: 'Kültür', value: report.categoryScores?.culturalFit || 0 },
+                         { label: 'Özgüven', value: report.categoryScores?.confidence || 0 },
                      ]} />
                 </div>
             </div>
@@ -129,11 +129,11 @@ export const InterviewReport: React.FC<InterviewReportProps> = ({ report, jobPos
                             <span className="p-2 rounded-lg bg-blue-500/10 text-blue-400">📊</span> Performans Metrikleri
                         </h3>
                         <div className="space-y-4">
-                            <ScoreCard title="Teknik Yeterlilik" score={report.categoryScores.technical} />
-                            <ScoreCard title="İletişim Becerisi" score={report.categoryScores.communication} />
-                            <ScoreCard title="Problem Çözme" score={report.categoryScores.problemSolving} />
-                            <ScoreCard title="Kültürel Uyum" score={report.categoryScores.culturalFit} />
-                            <ScoreCard title="Özgüven" score={report.categoryScores.confidence} />
+                            <ScoreCard title="Teknik Yeterlilik" score={report.categoryScores?.technical || 0} />
+                            <ScoreCard title="İletişim Becerisi" score={report.categoryScores?.communication || 0} />
+                            <ScoreCard title="Problem Çözme" score={report.categoryScores?.problemSolving || 0} />
+                            <ScoreCard title="Kültürel Uyum" score={report.categoryScores?.culturalFit || 0} />
+                            <ScoreCard title="Özgüven" score={report.categoryScores?.confidence || 0} />
                         </div>
                     </div>
 
@@ -144,21 +144,27 @@ export const InterviewReport: React.FC<InterviewReportProps> = ({ report, jobPos
                         <div className="mb-6">
                             <span className="text-green-400 font-bold text-[10px] uppercase tracking-widest block mb-3 opacity-80">Güçlü Yönler</span>
                             <ul className="space-y-2">
-                                {report.keyStrengths.map((s, i) => (
+                                {(report.keyStrengths || []).map((s, i) => (
                                     <li key={i} className="flex items-start gap-3 text-sm text-slate-300 bg-white/5 p-3 rounded-lg border border-white/5">
                                         <span className="text-green-500 font-bold mt-0.5">✓</span> {s}
                                     </li>
                                 ))}
+                                {(!report.keyStrengths || report.keyStrengths.length === 0) && (
+                                    <li className="text-sm text-slate-500 italic">Değerlendirme yapılamadı</li>
+                                )}
                             </ul>
                         </div>
                         <div>
                             <span className="text-red-400 font-bold text-[10px] uppercase tracking-widest block mb-3 opacity-80">Gelişim Alanları</span>
                             <ul className="space-y-2">
-                                {report.areasForImprovement.map((s, i) => (
+                                {(report.areasForImprovement || []).map((s, i) => (
                                     <li key={i} className="flex items-start gap-3 text-sm text-slate-300 bg-white/5 p-3 rounded-lg border border-white/5">
                                         <span className="text-red-500 font-bold mt-0.5">!</span> {s}
                                     </li>
                                 ))}
+                                {(!report.areasForImprovement || report.areasForImprovement.length === 0) && (
+                                    <li className="text-sm text-slate-500 italic">Değerlendirme yapılamadı</li>
+                                )}
                             </ul>
                         </div>
                     </div>
@@ -172,7 +178,7 @@ export const InterviewReport: React.FC<InterviewReportProps> = ({ report, jobPos
                         </h3>
                         <div className="bg-black/40 p-6 rounded-xl border border-white/5 mb-6 flex-grow">
                             <p className="text-slate-300 leading-relaxed whitespace-pre-wrap text-sm md:text-base font-light">
-                                {report.summary}
+                                {report.summary || 'Özet oluşturulamadı.'}
                             </p>
                         </div>
 
@@ -185,15 +191,15 @@ export const InterviewReport: React.FC<InterviewReportProps> = ({ report, jobPos
                                 <div className="space-y-4 text-sm">
                                     <div className="flex flex-col gap-1">
                                         <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Kıyafet & Görünüm</span>
-                                        <span className="text-slate-200">{report.visualAnalysis.attire}</span>
+                                        <span className="text-slate-200">{report.visualAnalysis?.attire || 'Değerlendirme yapılamadı'}</span>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Ortam</span>
-                                        <span className="text-slate-200">{report.visualAnalysis.environment}</span>
+                                        <span className="text-slate-200">{report.visualAnalysis?.environment || 'Değerlendirme yapılamadı'}</span>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Vücut Dili</span>
-                                        <span className="text-slate-200">{report.visualAnalysis.bodyLanguage}</span>
+                                        <span className="text-slate-200">{report.visualAnalysis?.bodyLanguage || 'Değerlendirme yapılamadı'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -206,15 +212,15 @@ export const InterviewReport: React.FC<InterviewReportProps> = ({ report, jobPos
                                 <div className="space-y-4 text-sm">
                                     <div className="flex flex-col gap-1">
                                         <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Reaksiyon Hızı</span>
-                                        <span className="text-slate-200">{report.behavioralAnalysis.reactionSpeed}</span>
+                                        <span className="text-slate-200">{report.behavioralAnalysis?.reactionSpeed || 'Değerlendirme yapılamadı'}</span>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Stres Yönetimi</span>
-                                        <span className="text-slate-200">{report.behavioralAnalysis.stressManagement}</span>
+                                        <span className="text-slate-200">{report.behavioralAnalysis?.stressManagement || 'Değerlendirme yapılamadı'}</span>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Ses Tonu</span>
-                                        <span className="text-slate-200">{report.behavioralAnalysis.toneOfVoice}</span>
+                                        <span className="text-slate-200">{report.behavioralAnalysis?.toneOfVoice || 'Değerlendirme yapılamadı'}</span>
                                     </div>
                                 </div>
                             </div>

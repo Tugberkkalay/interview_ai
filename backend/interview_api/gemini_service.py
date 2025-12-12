@@ -98,8 +98,10 @@ class GeminiService:
     @staticmethod
     def generate_report(
         transcript: list,
-        candidate_name: str,
-        job_position: str
+        candidate_name: str = '',
+        job_position: str = '',
+        job_description: str = '',
+        resume: dict = None
     ) -> dict:
         """
         Generate interview report using Gemini AI
@@ -126,10 +128,24 @@ class GeminiService:
             for item in transcript
         ])
         
+        # Build context text
+        context_parts = []
+        if candidate_name:
+            context_parts.append(f"Aday: {candidate_name}")
+        if job_position:
+            context_parts.append(f"Pozisyon: {job_position}")
+        if job_description:
+            context_parts.append(f"İş Tanımı:\n{job_description}")
+        if resume:
+            context_parts.append(f"Özgeçmiş:\n{json.dumps(resume, ensure_ascii=False)}")
+        
+        context_text = "\n".join(context_parts) if context_parts else ""
+        full_prompt = f"{context_text}\n\nMülakat Transkripti:\n{transcript_text}" if context_text else f"Mülakat Transkripti:\n{transcript_text}"
+        
         try:
             response = model.generate_content([
                 {"role": "user", "parts": [{"text": system_prompt}]},
-                {"role": "user", "parts": [{"text": f"Aday: {candidate_name}\nPozisyon: {job_position}\n\nMülakat Transkripti:\n{transcript_text}"}]}
+                {"role": "user", "parts": [{"text": full_prompt}]}
             ])
             
             result = json.loads(response.text)

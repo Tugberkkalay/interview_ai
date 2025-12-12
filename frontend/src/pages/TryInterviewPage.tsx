@@ -15,6 +15,7 @@ export const TryInterviewPage: React.FC = () => {
   const [jobDescription, setJobDescription] = useState("");
   const [candidateResume, setCandidateResume] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarId>('female');
+  const [companyKnowledge, setCompanyKnowledge] = useState<{ category: string; keywords: string[]; content: string }[] | undefined>(undefined);
   
   const [report, setReport] = useState<InterviewReportType | null>(null);
 
@@ -25,6 +26,7 @@ export const TryInterviewPage: React.FC = () => {
     jobDescription: string;
     candidateResume: string;
     selectedAvatar: AvatarId;
+    companyKnowledge?: { category: string; keywords: string[]; content: string }[];
   }) => {
     setJobPosition(config.jobPosition);
     setCompanyName(config.companyName);
@@ -32,6 +34,7 @@ export const TryInterviewPage: React.FC = () => {
     setJobDescription(config.jobDescription);
     setCandidateResume(config.candidateResume);
     setSelectedAvatar(config.selectedAvatar);
+    setCompanyKnowledge(config.companyKnowledge);
     setSessionStatus(InterviewStatus.ACTIVE);
     setErrorMsg(null);
     setReport(null);
@@ -102,6 +105,7 @@ export const TryInterviewPage: React.FC = () => {
                 jobDescription={jobDescription}
                 candidateResume={candidateResume}
                 avatarId={selectedAvatar}
+                companyKnowledge={companyKnowledge}
              />
         )}
 

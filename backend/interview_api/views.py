@@ -38,49 +38,43 @@ def get_interview_data(request, token):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Check if ATS endpoint is configured
-        if not session.ats_data_endpoint:
-            return Response(
-                {'error': "ATS endpoint yapılandırılmamış"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        
         # Mark session as active
         if session.status == 'pending':
             session.status = 'active'
             session.started_at = timezone.now()
             session.save()
         
-        # Fetch data from ATS endpoint
-        # If endpoint is a test endpoint (localhost:9000), return mock data (development only)
-        is_development = not os.getenv('IS_RENDER') and not os.getenv('RENDER')
-        if is_development and session.ats_data_endpoint and 'localhost:9000' in session.ats_data_endpoint:
-            # Return test data directly for development
-            import json
-            test_data = {
-                "candidateName": "Test Kullanıcı",
-                "candidateEmail": "test@example.com",
-                "jobPosition": "Backend Developer",
-                "companyName": session.company.company_name if session.company else "Test Company",
-                "companyInfo": "Test şirketi için mülakat",
-                "jobDescription": "Python, Django, PostgreSQL ile backend geliştirme. 3+ yıl deneyim gereklidir.",
-                "candidateResume": json.dumps({
-                    "name": "Test",
-                    "surname": "Kullanıcı",
-                    "email": "test@example.com",
-                    "skills": ["Python", "Django", "PostgreSQL", "Docker"],
-                    "experience_summary": "3 yıl backend development deneyimi"
-                }),
-                "avatarId": "male",
-                "companyLogo": None
-            }
-            return Response(test_data)
+        # Check if ATS endpoint is configured and valid
+        if not session.ats_data_endpoint or not session.ats_api_token:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Session {token} has no ATS endpoint or API token configured")
+            return Response(
+                {'error': "ATS endpoint veya API token yapılandırılmamış"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
+        # Check if endpoint is localhost (won't work in production)
+        if 'localhost' in session.ats_data_endpoint or '127.0.0.1' in session.ats_data_endpoint:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Session {token} has localhost endpoint: {session.ats_data_endpoint}")
+            return Response(
+                {'error': "ATS endpoint localhost olarak ayarlanmış. Production'da external URL kullanılmalı."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        # Fetch data from ATS endpoint
         try:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Fetching ATS data for session {token} from {session.ats_data_endpoint}")
+            
             ats_data = ATSService.fetch_interview_data(
                 endpoint=session.ats_data_endpoint,
                 api_token=session.ats_api_token
             )
+            logger.info(f"Successfully fetched ATS data for session {token}")
             return Response(ats_data)
         except Exception as ats_error:
             # Log the error for debugging
@@ -143,6 +137,23 @@ def create_session(request):
         if field not in request.data:
             return Response(
                 {'error': f'Eksik alan: {field}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    # Validate ATS endpoints (no localhost in production)
+    is_production = os.getenv('IS_RENDER') or os.getenv('RENDER')
+    ats_data_endpoint = request.data['ats_data_endpoint']
+    ats_webhook_url = request.data['ats_webhook_url']
+    
+    if is_production:
+        if 'localhost' in ats_data_endpoint or '127.0.0.1' in ats_data_endpoint:
+            return Response(
+                {'error': 'ATS data endpoint localhost olamaz. Production\'da external URL kullanılmalı.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if 'localhost' in ats_webhook_url or '127.0.0.1' in ats_webhook_url:
+            return Response(
+                {'error': 'ATS webhook URL localhost olamaz. Production\'da external URL kullanılmalı.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
     
@@ -288,24 +299,31 @@ def generate_report(request):
     Expected payload:
     {
         "transcript": [...],
-        "candidate_name": "...",
-        "job_position": "...",
-        "job_description": "...",
+        "candidate_name" or "candidateName": "...",
+        "job_position" or "jobPosition": "...",
+        "job_description" or "jobDescription": "...",
         "resume": {...}
     }
     """
     try:
+        import logging
+        logger = logging.getLogger(__name__)
+        
         transcript = request.data.get('transcript', [])
-        candidate_name = request.data.get('candidate_name', '')
-        job_position = request.data.get('job_position', '')
-        job_description = request.data.get('job_description', '')
+        # Support both camelCase and snake_case
+        candidate_name = request.data.get('candidate_name') or request.data.get('candidateName', '')
+        job_position = request.data.get('job_position') or request.data.get('jobPosition', '')
+        job_description = request.data.get('job_description') or request.data.get('jobDescription', '')
         resume = request.data.get('resume', {})
         
         if not transcript:
+            logger.error("generate_report: transcript is required")
             return Response(
                 {'error': 'Transcript is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        logger.info(f"Generating report for candidate: {candidate_name}, position: {job_position}")
         
         report = GeminiService.generate_report(
             transcript=transcript,
@@ -315,11 +333,15 @@ def generate_report(request):
             resume=resume
         )
         
-        return Response(report, status=status.HTTP_200_OK)
+        logger.info("Report generated successfully")
+        return Response({'report': report}, status=status.HTTP_200_OK)
         
     except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error generating report: {str(e)}", exc_info=True)
         return Response(
-            {'error': str(e)},
+            {'error': f'Rapor oluşturulamadı: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 

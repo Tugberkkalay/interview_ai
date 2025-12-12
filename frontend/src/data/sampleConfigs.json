@@ -1,0 +1,670 @@
+[
+  {
+    "jobPosition": "Senior Frontend Developer",
+    "companyName": "TechCorp A.Ş.",
+    "companyInfo": "İnovatif, hızlı büyüyen, çalışan odaklı bir teknoloji şirketi. Startup ruhunu koruyarak ölçeklenen, remote-first bir kültüre sahibiz. 2018'den beri sektörde öncü çözümler geliştiriyoruz.",
+    "jobDescription": "Aranan Nitelikler:\n- React.js ve TypeScript konusunda uzman seviyede bilgi\n- 5+ yıl frontend development deneyimi\n- UI/UX tasarım prensipleri ve modern design system'ler hakkında bilgi\n- Agile/Scrum metodolojileri ile çalışma deneyimi\n- İngilizce iletişim becerisi (yazılı ve sözlü)\n- State management (Redux, Zustand) deneyimi\n- Testing (Jest, React Testing Library) bilgisi\n- Performance optimization ve code splitting deneyimi",
+    "candidateResume": {
+      "name": "Ahmet",
+      "surname": "Yılmaz",
+      "email": "ahmet.yilmaz@example.com",
+      "city": "İstanbul",
+      "country": "Türkiye",
+      "skills": ["React", "TypeScript", "Next.js", "TailwindCSS", "Node.js", "Redux", "Jest", "GraphQL", "Webpack", "Vite"],
+      "education_summary": "Bilgisayar Mühendisliği - İstanbul Teknik Üniversitesi (2014-2018)",
+      "education_details": [
+        {
+          "degree": "Lisans",
+          "field": "Bilgisayar Mühendisliği",
+          "university": "İstanbul Teknik Üniversitesi",
+          "graduation_year": 2018,
+          "gpa": "3.4/4.0",
+          "relevant_courses": ["Web Programlama", "Algoritma ve Veri Yapıları", "Yazılım Mühendisliği", "Veritabanı Sistemleri"]
+        }
+      ],
+      "experience_summary": "6 yıllık frontend development deneyimi, özellikle React ekosisteminde uzmanlaşmış",
+      "work_experience_details": [
+        {
+          "company": "Digital Agency Ltd.",
+          "position": "Senior Frontend Developer",
+          "is_ongoing": true,
+          "start_date": "2021-05",
+          "description": "React ve TypeScript ile kurumsal web uygulamaları geliştirme, takım liderliği yapma, code review süreçlerini yönetme. Micro-frontend mimarisi kurulumu ve yönetimi. Performance optimization çalışmaları ile sayfa yükleme sürelerini %40 azalttım."
+        },
+        {
+          "company": "WebSolutions Inc.",
+          "position": "Frontend Developer",
+          "is_ongoing": false,
+          "start_date": "2019-03",
+          "end_date": "2021-04",
+          "description": "React ve Vue.js ile e-ticaret platformları geliştirme. Responsive design implementasyonu, cross-browser compatibility çalışmaları. A/B testing ve analytics entegrasyonu."
+        },
+        {
+          "company": "StartupTech",
+          "position": "Junior Frontend Developer",
+          "is_ongoing": false,
+          "start_date": "2018-07",
+          "end_date": "2019-02",
+          "description": "HTML, CSS, JavaScript ile web sayfaları geliştirme. React öğrenme ve ilk projelerde kullanma. Git workflow ve agile metodolojileri öğrenme."
+        }
+      ]
+    },
+    "selectedAvatar": "female",
+    "companyKnowledge": [
+      {
+        "category": "work_culture",
+        "keywords": ["kültür", "ortam", "mesai", "saat", "dress", "giyim", "kıyafet", "uzaktan", "remote", "hibrit", "ofis"],
+        "content": "Çalışma Kültürü: Esnek çalışma saatlerine sahibiz (Çekirdek saatler 10:00-16:00). Haftanın 3 günü uzaktan (Remote), 2 günü ofisten hibrit çalışma modelimiz var. Ofiste 'Smart Casual' giyim kodu geçerlidir. Hiyerarşiden uzak, fikirlerin özgürce tartışıldığı açık bir iletişim ortamımız vardır. Haftalık teknik paylaşım toplantıları ve aylık hackathon'lar düzenliyoruz."
+      },
+      {
+        "category": "benefits",
+        "keywords": ["yan hak", "maaş", "sigorta", "yemek", "ticket", "prim", "izin", "tatil", "spor", "eğitim"],
+        "content": "Yan Haklar: Tüm çalışanlarımıza ve ailelerine %100 kapsamlı Tamamlayıcı Sağlık Sigortası yapıyoruz. Günlük yemek ücreti sektör standartlarının üzerindedir (Setcard). Yılda bir kez performans primi, doğum günü izni ve yıllık 10.000 TL eğitim/kitap bütçesi sunuyoruz. Ayrıca ofiste ücretsiz spor salonu üyeliği mevcuttur. Yıllık 20 gün izin hakkı, evlilik ve doğum izinleri mevcuttur."
+      },
+      {
+        "category": "hiring_process",
+        "keywords": ["süreç", "aşama", "mülakat", "değerlendirme", "sonuç", "geri dönüş"],
+        "content": "İşe Alım Süreci: Şu anki AI mülakatı ilk aşamadır. Başarılı olmanız durumunda Teknik Lider ile online teknik mülakat ve sonrasında İK Direktörü ile Kültür uyum görüşmesi yapılacaktır. Süreç genellikle 2 hafta içinde sonuçlanır. Geri bildirim tüm adaylara e-posta ile iletilecektir."
+      }
+    ]
+  },
+  {
+    "jobPosition": "Backend Developer",
+    "companyName": "DataFlow Systems",
+    "companyInfo": "Büyük veri ve AI odaklı bir fintech şirketi. Yüksek performanslı sistemler geliştiriyoruz ve sürekli öğrenmeye değer veriyoruz. 2015'ten beri finansal teknolojilerde öncüyüz.",
+    "jobDescription": "Aranan Nitelikler:\n- Python ve Django framework konusunda uzmanlık\n- RESTful API tasarımı ve geliştirme deneyimi\n- PostgreSQL, Redis gibi veritabanı teknolojileri\n- Microservices mimarisi bilgisi\n- Docker ve Kubernetes deneyimi\n- CI/CD pipeline kurulumu\n- 3+ yıl backend development deneyimi\n- Fintech veya güvenlik odaklı projeler deneyimi tercih edilir",
+    "candidateResume": {
+      "name": "Mehmet",
+      "surname": "Demir",
+      "email": "mehmet.demir@example.com",
+      "city": "Ankara",
+      "country": "Türkiye",
+      "skills": ["Python", "Django", "PostgreSQL", "Redis", "Docker", "Kubernetes", "AWS", "Celery", "RabbitMQ", "Elasticsearch"],
+      "education_summary": "Bilgisayar Mühendisliği - Hacettepe Üniversitesi (2013-2017), Yüksek Lisans - ODTÜ (2017-2019)",
+      "education_details": [
+        {
+          "degree": "Yüksek Lisans",
+          "field": "Bilgisayar Mühendisliği",
+          "university": "Orta Doğu Teknik Üniversitesi",
+          "graduation_year": 2019,
+          "gpa": "3.6/4.0",
+          "thesis": "Distributed Systems Performance Optimization",
+          "relevant_courses": ["Distributed Systems", "Database Systems", "Machine Learning", "Cloud Computing"]
+        },
+        {
+          "degree": "Lisans",
+          "field": "Bilgisayar Mühendisliği",
+          "university": "Hacettepe Üniversitesi",
+          "graduation_year": 2017,
+          "gpa": "3.2/4.0",
+          "relevant_courses": ["Veri Yapıları", "Algoritma Analizi", "Yazılım Mühendisliği", "Veritabanı Yönetimi", "Ağ Programlama"]
+        }
+      ],
+      "experience_summary": "4 yıllık backend development deneyimi, özellikle fintech alanında uzmanlaşmış",
+      "work_experience_details": [
+        {
+          "company": "FinTech Solutions",
+          "position": "Backend Developer",
+          "is_ongoing": true,
+          "start_date": "2020-08",
+          "description": "Python ve Django ile ödeme sistemleri ve API geliştirme. Microservices mimarisi tasarımı ve implementasyonu. PostgreSQL ve Redis ile yüksek performanslı sistemler kurma. Docker containerization ve Kubernetes orchestration. API rate limiting ve güvenlik implementasyonları."
+        },
+        {
+          "company": "BankTech",
+          "position": "Junior Backend Developer",
+          "is_ongoing": false,
+          "start_date": "2019-06",
+          "end_date": "2020-07",
+          "description": "Python ile RESTful API geliştirme. Database optimization çalışmaları. Unit test yazma ve code review süreçlerine katılma. CI/CD pipeline kurulumu ve yönetimi."
+        }
+      ]
+    },
+    "selectedAvatar": "male",
+    "companyKnowledge": [
+      {
+        "category": "work_culture",
+        "keywords": ["kültür", "ortam", "mesai", "uzaktan", "remote", "ofis"],
+        "content": "Çalışma Kültürü: Tam zamanlı remote çalışma imkanı sunuyoruz. Haftalık takım toplantıları ve aylık ofis buluşmaları düzenliyoruz. Sürekli öğrenme kültürüne sahibiz, haftalık teknik paylaşım toplantıları yapıyoruz. Code review ve pair programming kültürü yaygındır."
+      },
+      {
+        "category": "benefits",
+        "keywords": ["yan hak", "maaş", "sigorta", "eğitim", "konferans"],
+        "content": "Yan Haklar: Rekabetçi maaş paketi, özel sağlık sigortası, yıllık 15.000 TL eğitim bütçesi, uluslararası konferanslara katılım desteği, esnek izin politikası. Yıllık 25 gün izin hakkı, doğum günü izni, evlilik izni mevcuttur."
+      },
+      {
+        "category": "hiring_process",
+        "keywords": ["süreç", "mülakat", "değerlendirme"],
+        "content": "İşe Alım Süreci: AI mülakatı sonrası teknik değerlendirme (coding challenge), sistem tasarım mülakatı ve kültür uyum görüşmesi. Süreç 1-2 hafta içinde tamamlanır. Tüm adaylara detaylı geri bildirim sağlanır."
+      }
+    ]
+  },
+  {
+    "jobPosition": "Full Stack Developer",
+    "companyName": "InnovateLab",
+    "companyInfo": "Startup ekosisteminde hızlı büyüyen, yenilikçi projeler geliştiren bir teknoloji şirketi. Genç ve dinamik bir ekibiz. 2020'den beri SaaS çözümleri geliştiriyoruz.",
+    "jobDescription": "Aranan Nitelikler:\n- Full stack development deneyimi (frontend + backend)\n- React ve Node.js bilgisi\n- MongoDB veya PostgreSQL deneyimi\n- Git ve version control\n- Agile development metodolojileri\n- Problem çözme ve analitik düşünme becerisi\n- 2+ yıl deneyim\n- Startup ortamında çalışma deneyimi tercih edilir",
+    "candidateResume": {
+      "name": "Zeynep",
+      "surname": "Kaya",
+      "email": "zeynep.kaya@example.com",
+      "city": "İzmir",
+      "country": "Türkiye",
+      "skills": ["React", "Node.js", "MongoDB", "Express", "TypeScript", "Git", "AWS", "Docker", "Jest"],
+      "education_summary": "Yazılım Mühendisliği - Ege Üniversitesi (2018-2022)",
+      "education_details": [
+        {
+          "degree": "Lisans",
+          "field": "Yazılım Mühendisliği",
+          "university": "Ege Üniversitesi",
+          "graduation_year": 2022,
+          "gpa": "3.5/4.0",
+          "relevant_courses": ["Web Programlama", "Veritabanı Sistemleri", "Yazılım Mimarisi", "Proje Yönetimi", "Mobil Uygulama Geliştirme"],
+          "projects": ["E-ticaret Platformu (React + Node.js)", "Mobil Uygulama (React Native)", "Veri Analiz Sistemi (Python)"]
+        }
+      ],
+      "experience_summary": "3 yıllık full stack development deneyimi, startup ortamında çalışma deneyimi",
+      "work_experience_details": [
+        {
+          "company": "StartupHub",
+          "position": "Full Stack Developer",
+          "is_ongoing": true,
+          "start_date": "2022-01",
+          "description": "React ve Node.js ile web uygulamaları geliştirme, database tasarımı. RESTful API geliştirme ve frontend entegrasyonu. AWS deployment ve CI/CD kurulumu. Agile metodolojiler ile çalışma, sprint planning ve daily standup'lara katılma."
+        },
+        {
+          "company": "Freelance",
+          "position": "Web Developer",
+          "is_ongoing": false,
+          "start_date": "2021-06",
+          "end_date": "2021-12",
+          "description": "Küçük işletmeler için web siteleri ve e-ticaret platformları geliştirme. WordPress, React ve Vue.js kullanarak projeler tamamlama. Müşteri iletişimi ve proje yönetimi."
+        }
+      ]
+    },
+    "selectedAvatar": "female",
+    "companyKnowledge": [
+      {
+        "category": "work_culture",
+        "keywords": ["kültür", "ortam", "startup", "dinamik"],
+        "content": "Çalışma Kültürü: Startup ruhunu koruyan, hızlı karar alan, esnek bir yapımız var. Haftalık sprint'ler, günlük stand-up'lar yapıyoruz. Hata yapmaktan korkmuyoruz, hızlı öğreniyoruz. Flat hierarchy, herkesin fikri önemli."
+      },
+      {
+        "category": "benefits",
+        "keywords": ["yan hak", "equity", "opsiyon", "izin"],
+        "content": "Yan Haklar: Startup equity opsiyonları, esnek çalışma saatleri, sınırsız izin politikası, ekip aktiviteleri ve team building etkinlikleri. Yıllık 5.000 TL eğitim bütçesi, konferans katılım desteği."
+      },
+      {
+        "category": "hiring_process",
+        "keywords": ["süreç", "hızlı", "değerlendirme"],
+        "content": "İşe Alım Süreci: AI mülakatı sonrası kısa bir teknik görüşme ve kültür uyum değerlendirmesi. Süreç 1 hafta içinde sonuçlanır. Hızlı karar verme sürecimiz var."
+      }
+    ]
+  },
+  {
+    "jobPosition": "DevOps Engineer",
+    "companyName": "CloudScale Technologies",
+    "companyInfo": "Cloud infrastructure ve DevOps çözümleri sunan bir teknoloji şirketi. Enterprise müşterilere hizmet veriyoruz. 2016'dan beri sektörde güvenilir bir partneriz.",
+    "jobDescription": "Aranan Nitelikler:\n- AWS, Azure veya GCP cloud platform bilgisi\n- Kubernetes ve Docker deneyimi\n- CI/CD pipeline kurulumu (Jenkins, GitLab CI, GitHub Actions)\n- Infrastructure as Code (Terraform, CloudFormation)\n- Monitoring ve logging araçları (Prometheus, Grafana, ELK)\n- Linux sistem yönetimi\n- 3+ yıl DevOps deneyimi",
+    "candidateResume": {
+      "name": "Can",
+      "surname": "Özkan",
+      "email": "can.ozkan@example.com",
+      "city": "Ankara",
+      "country": "Türkiye",
+      "skills": ["AWS", "Kubernetes", "Docker", "Terraform", "Jenkins", "GitLab CI", "Prometheus", "Grafana", "Linux", "Python", "Bash"],
+      "education_summary": "Bilgisayar Mühendisliği - Bilkent Üniversitesi (2015-2019)",
+      "education_details": [
+        {
+          "degree": "Lisans",
+          "field": "Bilgisayar Mühendisliği",
+          "university": "Bilkent Üniversitesi",
+          "graduation_year": 2019,
+          "gpa": "3.3/4.0",
+          "relevant_courses": ["Sistem Programlama", "Ağ Sistemleri", "Güvenlik", "Cloud Computing", "Distributed Systems"],
+          "certifications": ["AWS Certified Solutions Architect", "Kubernetes Administrator (CKA)"]
+        }
+      ],
+      "experience_summary": "4 yıllık DevOps ve cloud infrastructure deneyimi",
+      "work_experience_details": [
+        {
+          "company": "TechInfra Solutions",
+          "position": "DevOps Engineer",
+          "is_ongoing": true,
+          "start_date": "2020-03",
+          "description": "AWS cloud infrastructure tasarımı ve yönetimi. Kubernetes cluster kurulumu ve yönetimi. CI/CD pipeline'ları kurma ve optimize etme. Terraform ile infrastructure as code. Monitoring ve alerting sistemleri kurma. Cost optimization çalışmaları ile %30 maliyet azaltma sağladım."
+        },
+        {
+          "company": "SysAdmin Pro",
+          "position": "System Administrator",
+          "is_ongoing": false,
+          "start_date": "2019-07",
+          "end_date": "2020-02",
+          "description": "Linux server yönetimi, network configuration, backup sistemleri kurma. Docker containerization çalışmaları. Monitoring araçları kurulumu."
+        }
+      ]
+    },
+    "selectedAvatar": "male",
+    "companyKnowledge": [
+      {
+        "category": "work_culture",
+        "keywords": ["kültür", "ortam", "teknik", "öğrenme"],
+        "content": "Çalışma Kültürü: Teknik odaklı, sürekli öğrenmeye açık bir ekibiz. Haftalık teknik paylaşım toplantıları, aylık tech talks düzenliyoruz. On-call rotation sistemi var, ekip olarak sorumluluk paylaşıyoruz."
+      },
+      {
+        "category": "benefits",
+        "keywords": ["yan hak", "maaş", "sertifika", "eğitim"],
+        "content": "Yan Haklar: Rekabetçi maaş, özel sağlık sigortası, cloud sertifikaları için tam destek, yıllık 20.000 TL eğitim bütçesi, konferans katılım desteği. Yıllık 22 gün izin, esnek çalışma saatleri."
+      },
+      {
+        "category": "hiring_process",
+        "keywords": ["süreç", "teknik", "değerlendirme"],
+        "content": "İşe Alım Süreci: AI mülakatı sonrası teknik değerlendirme (hands-on lab), sistem tasarım mülakatı ve kültür uyum görüşmesi. Süreç 2 hafta içinde tamamlanır."
+      }
+    ]
+  },
+  {
+    "jobPosition": "Mobile Developer (React Native)",
+    "companyName": "AppCraft Mobile",
+    "companyInfo": "Mobil uygulama geliştirme konusunda uzmanlaşmış bir şirket. iOS ve Android platformlarında native ve cross-platform çözümler sunuyoruz. 2017'den beri 50+ uygulama geliştirdik.",
+    "jobDescription": "Aranan Nitelikler:\n- React Native geliştirme deneyimi\n- iOS ve Android platform bilgisi\n- Redux veya Context API ile state management\n- Native module geliştirme deneyimi\n- App Store ve Play Store yayınlama süreçleri\n- 2+ yıl mobil uygulama geliştirme deneyimi\n- TypeScript bilgisi tercih edilir",
+    "candidateResume": {
+      "name": "Elif",
+      "surname": "Şahin",
+      "email": "elif.sahin@example.com",
+      "city": "İstanbul",
+      "country": "Türkiye",
+      "skills": ["React Native", "TypeScript", "Redux", "Firebase", "iOS", "Android", "Git", "Jest", "Detox"],
+      "education_summary": "Bilgisayar Mühendisliği - Boğaziçi Üniversitesi (2017-2021)",
+      "education_details": [
+        {
+          "degree": "Lisans",
+          "field": "Bilgisayar Mühendisliği",
+          "university": "Boğaziçi Üniversitesi",
+          "graduation_year": 2021,
+          "gpa": "3.4/4.0",
+          "relevant_courses": ["Mobil Programlama", "Kullanıcı Arayüzü Tasarımı", "Yazılım Mühendisliği", "Veri Yapıları"],
+          "projects": ["E-ticaret Mobil Uygulaması (React Native)", "Fitness Tracking App (iOS Native)"]
+        }
+      ],
+      "experience_summary": "3 yıllık mobil uygulama geliştirme deneyimi, React Native uzmanı",
+      "work_experience_details": [
+        {
+          "company": "MobileFirst Solutions",
+          "position": "React Native Developer",
+          "is_ongoing": true,
+          "start_date": "2021-09",
+          "description": "React Native ile cross-platform mobil uygulamalar geliştirme. Redux ile state management, Firebase entegrasyonu. App Store ve Play Store yayınlama süreçlerini yönetme. Performance optimization çalışmaları. Unit test ve integration test yazma."
+        },
+        {
+          "company": "StartupMobile",
+          "position": "Junior Mobile Developer",
+          "is_ongoing": false,
+          "start_date": "2021-01",
+          "end_date": "2021-08",
+          "description": "React Native öğrenme ve ilk projelerde kullanma. UI/UX implementasyonu, API entegrasyonları. Code review süreçlerine katılma."
+        }
+      ]
+    },
+    "selectedAvatar": "female",
+    "companyKnowledge": [
+      {
+        "category": "work_culture",
+        "keywords": ["kültür", "ortam", "yaratıcı", "inovasyon"],
+        "content": "Çalışma Kültürü: Yaratıcı ve inovatif bir ortam. Haftalık design review'lar, aylık hackathon'lar. Remote ve ofis hibrit çalışma. Esnek çalışma saatleri, öğle molası esnekliği."
+      },
+      {
+        "category": "benefits",
+        "keywords": ["yan hak", "maaş", "sigorta", "cihaz"],
+        "content": "Yan Haklar: Rekabetçi maaş, özel sağlık sigortası, geliştirme için MacBook ve iPhone/Android cihaz desteği, yıllık 8.000 TL eğitim bütçesi. Yıllık 18 gün izin, doğum günü izni."
+      },
+      {
+        "category": "hiring_process",
+        "keywords": ["süreç", "mülakat", "portfolio"],
+        "content": "İşe Alım Süreci: AI mülakatı sonrası teknik görüşme (portfolio review), coding challenge ve kültür uyum görüşmesi. Süreç 1-2 hafta içinde tamamlanır."
+      }
+    ]
+  },
+  {
+    "jobPosition": "Data Engineer",
+    "companyName": "DataInsight Analytics",
+    "companyInfo": "Büyük veri analizi ve data engineering çözümleri sunan bir şirket. Enterprise müşterilere data pipeline'ları ve analytics platformları geliştiriyoruz. 2014'ten beri sektörde öncüyüz.",
+    "jobDescription": "Aranan Nitelikler:\n- Python ve SQL bilgisi\n- Big Data teknolojileri (Spark, Hadoop, Kafka)\n- Data pipeline tasarımı ve geliştirme\n- ETL/ELT süreçleri deneyimi\n- Cloud data warehouse (Snowflake, BigQuery, Redshift)\n- 3+ yıl data engineering deneyimi\n- Airflow veya benzeri orchestration tool bilgisi",
+    "candidateResume": {
+      "name": "Burak",
+      "surname": "Arslan",
+      "email": "burak.arslan@example.com",
+      "city": "İstanbul",
+      "country": "Türkiye",
+      "skills": ["Python", "SQL", "Apache Spark", "Kafka", "Airflow", "Snowflake", "AWS", "Docker", "Pandas", "PySpark"],
+      "education_summary": "Endüstri Mühendisliği - İTÜ (2014-2018), Yüksek Lisans - Veri Bilimi - İTÜ (2018-2020)",
+      "education_details": [
+        {
+          "degree": "Yüksek Lisans",
+          "field": "Veri Bilimi",
+          "university": "İstanbul Teknik Üniversitesi",
+          "graduation_year": 2020,
+          "gpa": "3.7/4.0",
+          "thesis": "Large Scale Data Processing with Apache Spark",
+          "relevant_courses": ["Big Data Analytics", "Machine Learning", "Data Mining", "Distributed Systems"]
+        },
+        {
+          "degree": "Lisans",
+          "field": "Endüstri Mühendisliği",
+          "university": "İstanbul Teknik Üniversitesi",
+          "graduation_year": 2018,
+          "gpa": "3.5/4.0",
+          "relevant_courses": ["İstatistik", "Optimizasyon", "Veri Analizi", "Yöneylem Araştırması"]
+        }
+      ],
+      "experience_summary": "4 yıllık data engineering deneyimi, big data teknolojilerinde uzman",
+      "work_experience_details": [
+        {
+          "company": "BigData Solutions",
+          "position": "Data Engineer",
+          "is_ongoing": true,
+          "start_date": "2020-06",
+          "description": "Apache Spark ile büyük veri işleme pipeline'ları geliştirme. Kafka ile real-time data streaming. Airflow ile workflow orchestration. Snowflake data warehouse yönetimi. ETL/ELT süreçleri tasarımı ve implementasyonu. Data quality ve monitoring sistemleri kurma."
+        },
+        {
+          "company": "Analytics Pro",
+          "position": "Junior Data Engineer",
+          "is_ongoing": false,
+          "start_date": "2019-08",
+          "end_date": "2020-05",
+          "description": "Python ve SQL ile data pipeline'ları geliştirme. ETL süreçleri yazma. Database optimization çalışmaları. Reporting ve dashboard geliştirme."
+        }
+      ]
+    },
+    "selectedAvatar": "male",
+    "companyKnowledge": [
+      {
+        "category": "work_culture",
+        "keywords": ["kültür", "ortam", "analitik", "veri"],
+        "content": "Çalışma Kültürü: Veri odaklı karar alma kültürü. Haftalık data review toplantıları, aylık teknik paylaşımlar. Remote çalışma imkanı, esnek saatler. Takım içi knowledge sharing çok önemli."
+      },
+      {
+        "category": "benefits",
+        "keywords": ["yan hak", "maaş", "eğitim", "sertifika"],
+        "content": "Yan Haklar: Rekabetçi maaş, özel sağlık sigortası, data engineering sertifikaları için tam destek, yıllık 18.000 TL eğitim bütçesi. Yıllık 24 gün izin, konferans katılım desteği."
+      },
+      {
+        "category": "hiring_process",
+        "keywords": ["süreç", "teknik", "case study"],
+        "content": "İşe Alım Süreci: AI mülakatı sonrası teknik görüşme, data pipeline case study ve kültür uyum görüşmesi. Süreç 2-3 hafta içinde tamamlanır."
+      }
+    ]
+  },
+  {
+    "jobPosition": "UI/UX Designer",
+    "companyName": "DesignStudio Creative",
+    "companyInfo": "Dijital ürün tasarımı konusunda uzmanlaşmış bir tasarım stüdyosu. Web ve mobil uygulamalar için kullanıcı deneyimi tasarımları yapıyoruz. 2019'dan beri 100+ proje tamamladık.",
+    "jobDescription": "Aranan Nitelikler:\n- UI/UX tasarım deneyimi (3+ yıl)\n- Figma, Sketch veya Adobe XD bilgisi\n- User research ve usability testing deneyimi\n- Design system oluşturma bilgisi\n- Prototyping araçları (Framer, Principle)\n- HTML/CSS bilgisi (frontend developer ile işbirliği için)\n- Portfolio gereklidir",
+    "candidateResume": {
+      "name": "Selin",
+      "surname": "Yıldız",
+      "email": "selin.yildiz@example.com",
+      "city": "İstanbul",
+      "country": "Türkiye",
+      "skills": ["Figma", "Sketch", "Adobe XD", "Framer", "User Research", "Prototyping", "Design Systems", "HTML", "CSS"],
+      "education_summary": "Grafik Tasarım - Mimar Sinan Güzel Sanatlar Üniversitesi (2016-2020)",
+      "education_details": [
+        {
+          "degree": "Lisans",
+          "field": "Grafik Tasarım",
+          "university": "Mimar Sinan Güzel Sanatlar Üniversitesi",
+          "graduation_year": 2020,
+          "gpa": "3.6/4.0",
+          "relevant_courses": ["Dijital Tasarım", "Kullanıcı Deneyimi Tasarımı", "Tipografi", "Renk Teorisi", "İnteraktif Tasarım"],
+          "awards": ["En İyi Tasarım Projesi Ödülü (2019)", "UX Design Yarışması 2. Ödül (2020)"]
+        }
+      ],
+      "experience_summary": "4 yıllık UI/UX tasarım deneyimi, web ve mobil uygulama tasarımlarında uzman",
+      "work_experience_details": [
+        {
+          "company": "Digital Design Agency",
+          "position": "Senior UI/UX Designer",
+          "is_ongoing": true,
+          "start_date": "2020-10",
+          "description": "Web ve mobil uygulamalar için UI/UX tasarımları yapma. User research, persona oluşturma, user journey mapping. Design system oluşturma ve yönetme. Prototyping ve usability testing. Frontend developer'lar ile yakın işbirliği. 20+ proje tamamladım."
+        },
+        {
+          "company": "Creative Studio",
+          "position": "UI Designer",
+          "is_ongoing": false,
+          "start_date": "2020-01",
+          "end_date": "2020-09",
+          "description": "Web siteleri ve landing page'ler için UI tasarımları. Brand identity çalışmaları. Client presentation'ları ve feedback toplama."
+        }
+      ]
+    },
+    "selectedAvatar": "female",
+    "companyKnowledge": [
+      {
+        "category": "work_culture",
+        "keywords": ["kültür", "ortam", "yaratıcı", "tasarım"],
+        "content": "Çalışma Kültürü: Yaratıcı ve özgür bir tasarım ortamı. Haftalık design critique toplantıları, aylık inspiration sharing. Remote ve ofis hibrit çalışma. Esnek çalışma saatleri, yaratıcılık için zaman tanıyoruz."
+      },
+      {
+        "category": "benefits",
+        "keywords": ["yan hak", "maaş", "cihaz", "eğitim"],
+        "content": "Yan Haklar: Rekabetçi maaş, özel sağlık sigortası, tasarım araçları için tam destek (Figma Pro, Adobe Creative Cloud), yıllık 12.000 TL eğitim/kitap bütçesi. Yıllık 20 gün izin, tasarım konferanslarına katılım desteği."
+      },
+      {
+        "category": "hiring_process",
+        "keywords": ["süreç", "portfolio", "case study"],
+        "content": "İşe Alım Süreci: AI mülakatı sonrası portfolio review, design challenge ve kültür uyum görüşmesi. Süreç 1-2 hafta içinde tamamlanır."
+      }
+    ]
+  },
+  {
+    "jobPosition": "QA Automation Engineer",
+    "companyName": "QualityAssurance Pro",
+    "companyInfo": "Yazılım test otomasyonu ve kalite güvencesi konusunda uzmanlaşmış bir şirket. Enterprise müşterilere test çözümleri sunuyoruz. 2015'ten beri sektörde güvenilir bir partneriz.",
+    "jobDescription": "Aranan Nitelikler:\n- Test automation framework bilgisi (Selenium, Cypress, Playwright)\n- Programlama dili bilgisi (Java, Python, JavaScript)\n- API testing deneyimi (Postman, REST Assured)\n- CI/CD entegrasyonu\n- Test strategy ve planning\n- 3+ yıl QA automation deneyimi\n- ISTQB sertifikası tercih edilir",
+    "candidateResume": {
+      "name": "Emre",
+      "surname": "Tunç",
+      "email": "emre.tunc@example.com",
+      "city": "Ankara",
+      "country": "Türkiye",
+      "skills": ["Selenium", "Cypress", "Playwright", "Java", "Python", "JavaScript", "Postman", "Jenkins", "Git", "Jira"],
+      "education_summary": "Bilgisayar Mühendisliği - Gazi Üniversitesi (2015-2019)",
+      "education_details": [
+        {
+          "degree": "Lisans",
+          "field": "Bilgisayar Mühendisliği",
+          "university": "Gazi Üniversitesi",
+          "graduation_year": 2019,
+          "gpa": "3.3/4.0",
+          "relevant_courses": ["Yazılım Testi", "Yazılım Kalitesi", "Yazılım Mühendisliği", "Programlama Dilleri"],
+          "certifications": ["ISTQB Foundation Level", "Selenium WebDriver Certification"]
+        }
+      ],
+      "experience_summary": "4 yıllık QA automation deneyimi, test framework'leri konusunda uzman",
+      "work_experience_details": [
+        {
+          "company": "TestAutomation Solutions",
+          "position": "QA Automation Engineer",
+          "is_ongoing": true,
+          "start_date": "2020-04",
+          "description": "Selenium ve Cypress ile test automation framework'leri kurma ve geliştirme. API testing (Postman, REST Assured). CI/CD pipeline'lara test entegrasyonu. Test strategy oluşturma ve execution. Regression test suite'leri yönetme. Test coverage'ı %85'e çıkardım."
+        },
+        {
+          "company": "Software Testing Lab",
+          "position": "Junior QA Engineer",
+          "is_ongoing": false,
+          "start_date": "2019-07",
+          "end_date": "2020-03",
+          "description": "Manuel test execution, test case yazma. Selenium öğrenme ve ilk otomasyon script'lerini yazma. Bug tracking ve reporting."
+        }
+      ]
+    },
+    "selectedAvatar": "male",
+    "companyKnowledge": [
+      {
+        "category": "work_culture",
+        "keywords": ["kültür", "ortam", "kalite", "detay"],
+        "content": "Çalışma Kültürü: Kalite odaklı, detaylara önem veren bir ekibiz. Haftalık test review toplantıları, aylık quality metrics değerlendirmeleri. Remote çalışma imkanı. Continuous improvement kültürü."
+      },
+      {
+        "category": "benefits",
+        "keywords": ["yan hak", "maaş", "sertifika", "eğitim"],
+        "content": "Yan Haklar: Rekabetçi maaş, özel sağlık sigortası, QA sertifikaları için tam destek, yıllık 10.000 TL eğitim bütçesi. Yıllık 22 gün izin, konferans katılım desteği."
+      },
+      {
+        "category": "hiring_process",
+        "keywords": ["süreç", "teknik", "test"],
+        "content": "İşe Alım Süreci: AI mülakatı sonrası teknik görüşme, test automation challenge ve kültür uyum görüşmesi. Süreç 2 hafta içinde tamamlanır."
+      }
+    ]
+  },
+  {
+    "jobPosition": "Product Manager",
+    "companyName": "ProductVision Inc.",
+    "companyInfo": "Ürün yönetimi ve product strategy konusunda uzmanlaşmış bir şirket. SaaS ürünleri geliştiriyoruz ve müşteri odaklı yaklaşım benimsiyoruz. 2018'den beri 5+ başarılı ürün piyasaya sürdük.",
+    "jobDescription": "Aranan Nitelikler:\n- Product management deneyimi (3+ yıl)\n- Agile/Scrum metodolojileri\n- Data-driven decision making\n- User research ve customer interview deneyimi\n- Roadmap planning ve prioritization\n- Teknik background tercih edilir\n- İngilizce iletişim (yazılı ve sözlü)",
+    "candidateResume": {
+      "name": "Deniz",
+      "surname": "Aydın",
+      "email": "deniz.aydin@example.com",
+      "city": "İstanbul",
+      "country": "Türkiye",
+      "skills": ["Product Management", "Agile", "Scrum", "User Research", "Data Analysis", "Roadmap Planning", "Stakeholder Management", "Jira", "Confluence"],
+      "education_summary": "Endüstri Mühendisliği - Koç Üniversitesi (2014-2018), MBA - Koç Üniversitesi (2019-2021)",
+      "education_details": [
+        {
+          "degree": "MBA",
+          "field": "İşletme",
+          "university": "Koç Üniversitesi",
+          "graduation_year": 2021,
+          "gpa": "3.6/4.0",
+          "relevant_courses": ["Product Strategy", "Digital Marketing", "Business Analytics", "Innovation Management"]
+        },
+        {
+          "degree": "Lisans",
+          "field": "Endüstri Mühendisliği",
+          "university": "Koç Üniversitesi",
+          "graduation_year": 2018,
+          "gpa": "3.4/4.0",
+          "relevant_courses": ["Proje Yönetimi", "İstatistik", "Optimizasyon", "Yöneylem Araştırması"]
+        }
+      ],
+      "experience_summary": "5 yıllık product management deneyimi, SaaS ürünlerinde uzman",
+      "work_experience_details": [
+        {
+          "company": "SaaS Products Ltd.",
+          "position": "Product Manager",
+          "is_ongoing": true,
+          "start_date": "2021-06",
+          "description": "SaaS ürünü için product strategy ve roadmap oluşturma. User research ve customer interview'lar yapma. Cross-functional team liderliği (engineering, design, marketing). Data analysis ile feature prioritization. Product metrics tracking ve KPI yönetimi. 3 major release'i başarıyla yönettim."
+        },
+        {
+          "company": "TechStartup",
+          "position": "Associate Product Manager",
+          "is_ongoing": false,
+          "start_date": "2020-01",
+          "end_date": "2021-05",
+          "description": "Product requirements document (PRD) yazma. User story oluşturma ve backlog yönetimi. Sprint planning ve daily standup'lara katılma. User feedback toplama ve analiz etme."
+        },
+        {
+          "company": "Digital Agency",
+          "position": "Business Analyst",
+          "is_ongoing": false,
+          "start_date": "2018-07",
+          "end_date": "2019-12",
+          "description": "Müşteri ihtiyaçlarını analiz etme, requirement gathering. Functional specification yazma. Stakeholder communication ve project coordination."
+        }
+      ]
+    },
+    "selectedAvatar": "female",
+    "companyKnowledge": [
+      {
+        "category": "work_culture",
+        "keywords": ["kültür", "ortam", "stratejik", "müşteri"],
+        "content": "Çalışma Kültürü: Müşteri odaklı, data-driven karar alma kültürü. Haftalık product review'lar, aylık strategy sessions. Cross-functional collaboration çok önemli. Remote ve ofis hibrit çalışma."
+      },
+      {
+        "category": "benefits",
+        "keywords": ["yan hak", "maaş", "eğitim", "konferans"],
+        "content": "Yan Haklar: Rekabetçi maaş + equity, özel sağlık sigortası, product management eğitimleri için tam destek, yıllık 15.000 TL eğitim bütçesi. Yıllık 25 gün izin, product konferanslarına katılım desteği."
+      },
+      {
+        "category": "hiring_process",
+        "keywords": ["süreç", "case study", "strateji"],
+        "content": "İşe Alım Süreci: AI mülakatı sonrası product case study, strategy discussion ve kültür uyum görüşmesi. Süreç 2-3 hafta içinde tamamlanır."
+      }
+    ]
+  },
+  {
+    "jobPosition": "Security Engineer",
+    "companyName": "SecureTech Solutions",
+    "companyInfo": "Siber güvenlik ve information security konusunda uzmanlaşmış bir şirket. Enterprise müşterilere güvenlik çözümleri sunuyoruz. 2013'ten beri sektörde güvenilir bir partneriz.",
+    "jobDescription": "Aranan Nitelikler:\n- Cybersecurity ve information security bilgisi\n- Penetration testing deneyimi\n- Security tools (Burp Suite, Metasploit, Wireshark)\n- Network security ve firewall yönetimi\n- Security compliance (ISO 27001, GDPR)\n- 3+ yıl security engineering deneyimi\n- Security sertifikaları (CEH, CISSP) tercih edilir",
+    "candidateResume": {
+      "name": "Kerem",
+      "surname": "Kurt",
+      "email": "kerem.kurt@example.com",
+      "city": "Ankara",
+      "country": "Türkiye",
+      "skills": ["Penetration Testing", "Burp Suite", "Metasploit", "Wireshark", "Python", "Linux", "Network Security", "OWASP", "ISO 27001"],
+      "education_summary": "Bilgisayar Mühendisliği - ODTÜ (2014-2018), Yüksek Lisans - Siber Güvenlik - ODTÜ (2018-2020)",
+      "education_details": [
+        {
+          "degree": "Yüksek Lisans",
+          "field": "Siber Güvenlik",
+          "university": "Orta Doğu Teknik Üniversitesi",
+          "graduation_year": 2020,
+          "gpa": "3.8/4.0",
+          "thesis": "Advanced Persistent Threat Detection Methods",
+          "relevant_courses": ["Network Security", "Cryptography", "Malware Analysis", "Digital Forensics"]
+        },
+        {
+          "degree": "Lisans",
+          "field": "Bilgisayar Mühendisliği",
+          "university": "Orta Doğu Teknik Üniversitesi",
+          "graduation_year": 2018,
+          "gpa": "3.5/4.0",
+          "relevant_courses": ["Ağ Sistemleri", "Güvenlik", "Sistem Programlama", "Veri Yapıları"],
+          "certifications": ["CEH (Certified Ethical Hacker)", "CISSP (in progress)"]
+        }
+      ],
+      "experience_summary": "4 yıllık cybersecurity deneyimi, penetration testing ve security assessment'te uzman",
+      "work_experience_details": [
+        {
+          "company": "CyberSecurity Pro",
+          "position": "Security Engineer",
+          "is_ongoing": true,
+          "start_date": "2020-09",
+          "description": "Penetration testing ve vulnerability assessment yapma. Security audit ve compliance kontrolü (ISO 27001, GDPR). Security incident response. Security tools kurulumu ve yönetimi (SIEM, IDS/IPS). Security awareness training düzenleme. 50+ security assessment tamamladım."
+        },
+        {
+          "company": "InfoSec Labs",
+          "position": "Junior Security Analyst",
+          "is_ongoing": false,
+          "start_date": "2019-11",
+          "end_date": "2020-08",
+          "description": "Security monitoring ve threat detection. Vulnerability scanning ve reporting. Security documentation yazma. Security tools öğrenme ve kullanma."
+        }
+      ]
+    },
+    "selectedAvatar": "male",
+    "companyKnowledge": [
+      {
+        "category": "work_culture",
+        "keywords": ["kültür", "ortam", "güvenlik", "sürekli"],
+        "content": "Çalışma Kültürü: Güvenlik odaklı, sürekli öğrenme kültürü. Haftalık security review'lar, aylık threat intelligence sharing. On-call rotation sistemi. Security-first mindset."
+      },
+      {
+        "category": "benefits",
+        "keywords": ["yan hak", "maaş", "sertifika", "eğitim"],
+        "content": "Yan Haklar: Rekabetçi maaş, özel sağlık sigortası, security sertifikaları için tam destek (CEH, CISSP, OSCP), yıllık 25.000 TL eğitim bütçesi. Yıllık 24 gün izin, security konferanslarına katılım desteği."
+      },
+      {
+        "category": "hiring_process",
+        "keywords": ["süreç", "teknik", "assessment"],
+        "content": "İşe Alım Süreci: AI mülakatı sonrası teknik görüşme, security assessment challenge ve kültür uyum görüşmesi. Background check yapılır. Süreç 2-3 hafta içinde tamamlanır."
+      }
+    ]
+  }
+]
+
