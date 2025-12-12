@@ -8,6 +8,16 @@ export function onRequest(context) {
     return next();
   }
 
+  // Root path - serve index.html normally
+  if (pathname === '/') {
+    return next();
+  }
+
+  // index.html itself - serve normally
+  if (pathname === '/index.html') {
+    return next();
+  }
+
   // Static assets (files with extensions like .js, .css, .png, etc.)
   // Let them be served normally
   const hasExtension = /\.\w+$/.test(pathname);
@@ -15,8 +25,8 @@ export function onRequest(context) {
     return next();
   }
 
-  // All other routes (app routes like /dashboard, /register, etc.)
-  // Serve index.html so React Router can handle routing
+  // All other routes (app routes like /login, /dashboard, /register, etc.)
+  // Rewrite to index.html so React Router can handle client-side routing
   const indexUrl = new URL('/index.html', url.origin);
   return next(new Request(indexUrl, request));
 }
