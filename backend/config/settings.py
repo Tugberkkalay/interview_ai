@@ -31,17 +31,8 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-mtd*0s2$+9qf_hx0k5l%v3xbm8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# Detect if running on Render
-IS_RENDER = os.getenv('RENDER') == 'true' or 'onrender.com' in os.getenv('RENDER_EXTERNAL_HOSTNAME', '')
 
-# ALLOWED_HOSTS
-if IS_RENDER:
-    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_HOSTS') else []
-    # Add Render default hostname if available
-    if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
-        ALLOWED_HOSTS.append(os.getenv('RENDER_EXTERNAL_HOSTNAME'))
-else:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_HOSTS') else []
 
 
 # Application definition
@@ -62,21 +53,18 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # CORS - must be before CommonMiddleware
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'interview_api.middleware.DisableCSRFForAPI',  # Disable CSRF for API endpoints
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'interview_api.middleware.APIKeyAuthenticationMiddleware',  # Custom API key middleware
+    "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",  # CORS - must be before CommonMiddleware
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "interview_api.middleware.DisableCSRFForAPI",  # Disable CSRF for API endpoints
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "interview_api.middleware.APIKeyAuthenticationMiddleware",  # Custom API key middleware
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
-
-# Add WhiteNoise middleware only in production
-if IS_RENDER:
-    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 ROOT_URLCONF = 'config.urls'
 
@@ -155,8 +143,7 @@ STATICFILES_DIRS = [
 ]
 
 # WhiteNoise configuration for static files
-if IS_RENDER:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (User uploads)
 MEDIA_URL = '/media/'
@@ -167,37 +154,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CORS Settings
-if IS_RENDER:
-    # Production CORS - from environment variable
-    cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if os.getenv('CORS_ALLOWED_ORIGINS') else []
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins if origin.strip()]
-    # Note: CORS_ALLOW_CREDENTIALS = True olduğu için '*' kullanılamaz
-    # Environment variable'da domain'leri belirtmelisiniz
-    # Örnek: CORS_ALLOWED_ORIGINS=https://plena-interview.qtale.io,https://plena-interview.pages.dev
-    
-    # Debug: Log CORS origins (remove in production if sensitive)
-    if DEBUG:
-        print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
-else:
-    # Development CORS
-    CORS_ALLOWED_ORIGINS = [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:5176",
-        "http://localhost:5177",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://127.0.0.1:5175",
-        "http://127.0.0.1:5176",
-        "http://127.0.0.1:5177",
-        "http://localhost:4173",
-        "http://127.0.0.1:4173",
-    ]
+# Production CORS - from environment variable
+cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if os.getenv('CORS_ALLOWED_ORIGINS') else []
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins if origin.strip()]
 
 CORS_ALLOW_CREDENTIALS = True
-# Preflight request için gerekli ayarlar
 CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 CORS_ALLOW_HEADERS = [
     'accept',
@@ -212,35 +173,9 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # CSRF Settings
-# Cross-origin için CSRF cookie ayarları
-CSRF_COOKIE_SAMESITE = 'None' if IS_RENDER else 'Lax'
-CSRF_COOKIE_SECURE = IS_RENDER  # True in production with HTTPS (None için zorunlu)
-CSRF_COOKIE_HTTPONLY = False  # JavaScript'ten erişilebilir olmalı (bazı durumlarda)
-if IS_RENDER:
-    # Production CSRF - same as CORS origins (but not wildcard)
-    if CORS_ALLOWED_ORIGINS and CORS_ALLOWED_ORIGINS != ['*']:
-        CSRF_TRUSTED_ORIGINS = [origin for origin in CORS_ALLOWED_ORIGINS if origin != '*']
-    else:
-        CSRF_TRUSTED_ORIGINS = []
-    # Add Render hostname if available
-    if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
-        render_host = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}"
-        if render_host not in CSRF_TRUSTED_ORIGINS:
-            CSRF_TRUSTED_ORIGINS.append(render_host)
-else:
-    # Development CSRF
-    CSRF_TRUSTED_ORIGINS = [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:5176",
-        "http://localhost:5177",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://127.0.0.1:5175",
-        "http://127.0.0.1:5176",
-        "http://127.0.0.1:5177",
-    ]
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = False
 
 # REST Framework Settings
 REST_FRAMEWORK = {
@@ -273,17 +208,3 @@ SPECTACULAR_SETTINGS = {
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 86400 * 30  # 30 days
 SESSION_COOKIE_HTTPONLY = True
-# Cross-origin için 'None' kullanmalıyız (frontend ve backend farklı domain'lerde)
-SESSION_COOKIE_SAMESITE = 'None' if IS_RENDER else 'Lax'
-SESSION_COOKIE_SECURE = IS_RENDER  # True in production with HTTPS (None için zorunlu)
-SESSION_SAVE_EVERY_REQUEST = False
-
-# Security Settings for Production
-if IS_RENDER:
-    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True') == 'True'
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    X_FRAME_OPTIONS = 'DENY'

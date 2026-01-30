@@ -26,12 +26,6 @@ class ATSService:
             raise Exception("ATS API token boş")
         
         # Check if endpoint is localhost (won't work in production)
-        import os
-        is_production = os.getenv('IS_RENDER') or os.getenv('RENDER')
-        if is_production and ('localhost' in endpoint or '127.0.0.1' in endpoint):
-            logger.error(f"Invalid ATS endpoint in production: {endpoint}")
-            raise Exception("ATS endpoint localhost olarak ayarlanmış. Production'da external URL kullanılmalı.")
-        
         try:
             logger.info(f"Fetching from ATS endpoint: {endpoint}")
             response = requests.get(
