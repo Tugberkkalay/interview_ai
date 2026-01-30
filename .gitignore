@@ -21,7 +21,6 @@ backend/*.log
 backend/media/
 backend/staticfiles/
 backend/.env
-backend/uv.lock  # uv.lock can be committed, but some prefer to ignore it
 
 # IDE
 .vscode/
