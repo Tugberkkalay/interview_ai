@@ -98,6 +98,11 @@ def get_interview_data(request, token):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
+    except InterviewSession.DoesNotExist:
+        return Response(
+            {'error': 'Session bulunamadı. Link geçersiz veya süresi dolmuş olabilir.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
         import logging
         logger = logging.getLogger(__name__)

@@ -215,6 +215,50 @@ python manage.py createsuperuser
 - Raporları JSON formatında görüntüle
 - Session'ların süresini yönet (varsayılan: 7 gün)
 
+## 🚢 Deployment
+
+### Hetzner Sunucu (Önerilen)
+
+Backend'i kendi Hetzner sunucunuza deploy etmek için hazır dosyalar ve dokümantasyon:
+
+```bash
+# Hızlı başlangıç için
+cat HETZNER_QUICKSTART.md
+
+# Detaylı kurulum için
+cat HETZNER_DEPLOYMENT.md
+
+# Günlük komutlar için
+cat HETZNER_COMMANDS.md
+```
+
+**Deployment Dosyaları:**
+- 📖 `HETZNER_README.md` - Tüm dosyaların özeti
+- ⚡ `HETZNER_QUICKSTART.md` - 12 adımda hızlı kurulum
+- 📚 `HETZNER_DEPLOYMENT.md` - Detaylı rehber
+- 💻 `HETZNER_COMMANDS.md` - Kullanışlı komutlar
+- 🚀 `deploy.sh` - Otomatik deployment script
+- ⚙️ `systemd/interview.service` - Systemd service dosyası
+- 🌐 `nginx/interview.conf` - Nginx configuration
+- 📁 `scripts/` - Backup, restore, health-check script'leri
+- 🔐 `backend/env.template.hetzner` - Environment variables şablonu
+
+**Tek komutla deployment:**
+```bash
+sudo /root/qtale/service/deploy.sh
+```
+
+### Render.com
+
+Render'a deployment için:
+- 📚 `RENDER_DEPLOYMENT.md` - Detaylı Render rehberi
+- 📋 `render.yaml` - Otomatik deployment yapılandırması
+
+### Cloudflare Pages (Frontend)
+
+Frontend için Cloudflare Pages:
+- 📚 `CLOUDFLARE_PAGES_FIX.md` - Cloudflare Pages kurulumu
+
 ## 🎨 Teknolojiler
 
 ### Frontend
@@ -234,6 +278,13 @@ python manage.py createsuperuser
 - **psycopg2-binary** - PostgreSQL adapter
 - **dj-database-url** - Database URL parser
 - **python-dotenv** - Ortam değişkenleri
+
+### Deployment
+- **Systemd** - Service management
+- **Gunicorn** - WSGI server
+- **Nginx** - Reverse proxy
+- **Let's Encrypt** - SSL certificates
+- **uv** - Python package manager
 
 ## 📝 Gemini API Kullanımı
 

@@ -4,7 +4,10 @@ Custom Middleware for API Key Authentication
 from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.deprecation import MiddlewareMixin
+import logging
 from .profile_models import Profile
+
+logger = logging.getLogger(__name__)
 
 
 class DisableCSRFForAPI(MiddlewareMixin):
@@ -46,21 +49,41 @@ class APIKeyAuthenticationMiddleware:
                 
                 # Check credits
                 if not profile.has_quota_available():
-                    return JsonResponse({
-                        'error': 'Kredi yetersiz',
-                        'detail': f'Kalan krediniz: {profile.credits_total - profile.credits_used} / {profile.credits_total}',
+                    remaining_credits = max(0, profile.credits_total - profile.credits_used)
+                    logger.warning(
+                        f"Quota exceeded for profile {profile.id} ({profile.company_name}): "
+                        f"used={profile.credits_used}, total={profile.credits_total}, plan={profile.plan}"
+                    )
+                    
+                    response = JsonResponse({
+                        'error': 'Kredi yetersiz - Quota exceeded',
+                        'detail': f'Kalan krediniz: {remaining_credits} / {profile.credits_total}. '
+                                 f'Yeni kredi satın almak için dashboard\'a giriş yapın.',
                         'credits_used': profile.credits_used,
                         'credits_total': profile.credits_total,
-                        'plan': profile.plan
+                        'credits_remaining': remaining_credits,
+                        'plan': profile.plan,
+                        'message': 'No credits available. Please purchase more credits to create new interview sessions.'
                     }, status=429)
+                    
+                    # Add Retry-After header to prevent immediate retries
+                    # Suggest retry after 1 hour (3600 seconds) or when credits are added
+                    response['Retry-After'] = '3600'
+                    return response
                 
-                # Mark API key as used
+                # Mark API key as used (only updates timestamp, doesn't consume credit)
                 profile.mark_api_key_used()
                 
                 # Attach profile to request (keeping 'company' for backward compatibility)
                 request.company = profile
                 
+                logger.debug(
+                    f"API key validated for profile {profile.id} ({profile.company_name}): "
+                    f"credits={profile.credits_used}/{profile.credits_total}, plan={profile.plan}"
+                )
+                
             except Profile.DoesNotExist:
+                logger.warning(f"Invalid API key attempt: {api_key[:20]}...")
                 return JsonResponse({
                     'error': 'Geçersiz API key',
                     'detail': 'API key bulunamadı veya devre dışı'
