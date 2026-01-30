@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
   console.log('Vite config: API_KEY found:', !!apiKey, 'Length:', apiKey.length);
   
   return {
-    base: '/', // Ensure assets are served from root
+    base: '/static/', // Ensure assets are served from root
     plugins: [react()],
     resolve: {
       alias: {
