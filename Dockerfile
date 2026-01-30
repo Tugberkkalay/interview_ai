@@ -26,7 +26,7 @@ RUN pip install uv
 # Copy backend requirements and install dependencies
 COPY backend/pyproject.toml backend/uv.lock ./backend/
 WORKDIR /app/backend
-RUN uv pip install --system django gunicorn psycopg2-binary whitenoise dj-database-url python-dotenv djangorestframework django-cors-headers google-generativeai cryptography requests drf-spectacular Pillow
+RUN uv pip install --system django gunicorn psycopg2-binary whitenoise dj-database-url python-dotenv djangorestframework django-cors-headers google-generativeai cryptography requests drf-spectacular Pillow daphne channels
 
 # Copy backend code
 COPY backend/ .
