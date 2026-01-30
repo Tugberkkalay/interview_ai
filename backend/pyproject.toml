@@ -17,6 +17,8 @@ dependencies = [
     "Pillow==10.4.0",
     "gunicorn==21.2.0",
     "whitenoise==6.6.0",
+    "daphne>=4.0.0",
+    "channels>=4.0.0",
 ]
 
 [tool.hatch.build.targets.wheel]

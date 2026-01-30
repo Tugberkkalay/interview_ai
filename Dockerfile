@@ -6,6 +6,8 @@ WORKDIR /app
 COPY frontend/package.json frontend/bun.lock ./
 RUN bun install --frozen-lockfile
 COPY frontend/ .
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 RUN bun run build
 
 # Stage 2: Final Backend Image
@@ -45,5 +47,5 @@ RUN SECRET_KEY=build_dummy python manage.py collectstatic --noinput
 # Expose port (Dokku usually redirects 80->5000 or sets PORT env var)
 EXPOSE 8000
 
-# Start Gunicorn
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Start Daphne (ASGI)
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]

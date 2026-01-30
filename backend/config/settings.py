@@ -38,6 +38,7 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',  # ASGI helper - must be first
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -48,9 +49,12 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'drf_spectacular',  # API documentation
+    'channels',  # WebSocket support
     # Local apps
     'interview_api',
 ]
+
+ASGI_APPLICATION = "config.asgi.application"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

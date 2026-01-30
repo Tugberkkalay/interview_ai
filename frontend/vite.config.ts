@@ -8,7 +8,8 @@ export default defineConfig(({ mode }) => {
   const backendEnv = loadEnv(mode, '../backend', '');
   
   // Support both API_KEY and GEMINI_API_KEY (backend uses GEMINI_API_KEY)
-  const apiKey = rootEnv.API_KEY || rootEnv.GEMINI_API_KEY || backendEnv.GEMINI_API_KEY || backendEnv.API_KEY || '';
+  // Frontend API Key removed as we use backend proxy
+  const apiKey = '';
   
   console.log('Vite config: API_KEY found:', !!apiKey, 'Length:', apiKey.length);
   

@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type } from '@google/genai';
+import { LiveServerMessage, Modality, FunctionDeclaration, Type } from '@google/genai';
 import { InterviewStatus, AvatarId } from '../types';
 import { AudioVisualizer } from './AudioVisualizer';
 import { createPcmBlob, decodeAudioData, base64ToUint8Array } from '../services/audioUtils';
+import { LiveClient } from '../services/LiveClient';
 
 interface AudioContextRefs {
     input?: AudioContext;
@@ -488,16 +489,22 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
             }
         };
 
-        // Only initialize GoogleGenAI if API key is available
-        if (!apiKey) {
-            throw new Error("An API Key must be set when running in a browser. Please set VITE_API_KEY environment variable or configure API_KEY in vite.config.ts");
-        }
+        // Helper to determine WebSocket URL
+        const getWsUrl = () => {
+            const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000/api';
+            // Remove /api if present and replace protocol
+            const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+            return baseUrl.replace(/^http/, 'ws') + '/ws/assistant/';
+        };
+
+        const wsUrl = getWsUrl();
+        console.log("Connecting to Gemini Proxy at:", wsUrl);
         
-        const ai = new GoogleGenAI({ apiKey });
+        const liveClient = new LiveClient(wsUrl);
         
         const aiVoice = "Fenrir"; // Male voice - Deep & Authoritative
 
-        const sessionPromise = ai.live.connect({
+        const sessionPromise = liveClient.connect({
             model: 'gemini-2.5-flash-native-audio-preview-09-2025',
             config: {
                 responseModalities: [Modality.AUDIO],
