@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import os
@@ -92,6 +93,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         self.client = genai.Client(api_key=self.api_key, http_options={'api_version': 'v1alpha'})
         self.gemini_session = None
         self.session_active = False
+        self.session_task = None
 
         await self.accept()
         print("WebSocket connected!")
@@ -99,6 +101,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         print(f"WebSocket disconnected with code: {close_code}")
         self.session_active = False
+        if self.session_task:
+            self.session_task.cancel()
+            self.session_task = None
         # Clean up Gemini session if possible/needed (Python SDK manages this mostly)
         pass
 
@@ -112,7 +117,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                     # Start Gemini Session
                     config = data.get("config", {})
                     model = data.get("model")
-                    await self.start_gemini_session(config, model)
+                    if self.session_task:
+                        self.session_task.cancel()
+                    self.session_task = asyncio.create_task(self.start_gemini_session(config, model))
                 
                 elif type == "client_content":
                     # Send text input to Gemini
@@ -172,7 +179,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 # Listen for messages from Gemini
                 async for response in session.receive():
                     if not self.session_active:
-                         break
+                        break
                          
                     server_content = response.server_content
                     tool_calls = response.tool_call
@@ -229,6 +236,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                             "functionCalls": fc_list
                         }))
                         
+        except asyncio.CancelledError:
+            self.session_active = False
+            raise
         except Exception as e:
             print(f"Gemini Session Error: {e}")
             import traceback
