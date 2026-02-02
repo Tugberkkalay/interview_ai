@@ -97,9 +97,11 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         self.pending_text_inputs = []
         self.pending_media_inputs = []
         self.pending_audio_chunks = []
+        self.debug_text_count = 0
+        self.debug_audio_count = 0
 
         await self.accept()
-        print("WebSocket connected!")
+        print(f"WebSocket connected! path={self.scope.get('path')}")
 
     async def disconnect(self, close_code):
         print(f"WebSocket disconnected with code: {close_code}")
@@ -115,6 +117,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             try:
                 data = json.loads(text_data)
                 type = data.get("type")
+                if self.debug_text_count < 5:
+                    print(f"WS text recv type={type} keys={list(data.keys())}")
+                    self.debug_text_count += 1
                 
                 if type == "connect_gemini":
                     # Start Gemini Session
@@ -164,6 +169,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 print("Invalid JSON received")
         
         if bytes_data:
+            if self.debug_audio_count < 5:
+                print(f"WS audio recv bytes={len(bytes_data)}")
+                self.debug_audio_count += 1
             # Send audio chunk to Gemini
             if self.gemini_session:
                 # Python SDK send accepts data chunks for audio/video

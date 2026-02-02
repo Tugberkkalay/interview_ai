@@ -43,6 +43,8 @@ class ProxySession {
     private ws: WebSocket;
     private config: any;
     private model?: string;
+    private debugTextCount = 0;
+    private debugAudioCount = 0;
 
     constructor(ws: WebSocket, config: any, model?: string) {
         this.ws = ws;
@@ -146,6 +148,13 @@ class ProxySession {
 
     sendRealtimeInput(input: { media?: any, text?: string, endOfTurn?: boolean }) {
         if (input.text !== undefined) {
+            if (this.debugTextCount < 5) {
+                console.debug("WS send text", {
+                    length: input.text?.length ?? 0,
+                    endOfTurn: input.endOfTurn
+                });
+                this.debugTextCount += 1;
+            }
             this.ws.send(JSON.stringify({ 
                 type: "realtime_input", 
                 text: input.text,
@@ -154,8 +163,22 @@ class ProxySession {
         }
         if (input.media) {
             if (input.media instanceof Blob) {
+                if (this.debugAudioCount < 5) {
+                    console.debug("WS send audio blob", {
+                        size: input.media.size,
+                        type: input.media.type
+                    });
+                    this.debugAudioCount += 1;
+                }
                 this.ws.send(input.media);
             } else if (input.media.data && input.media.mimeType) {
+                if (this.debugAudioCount < 5) {
+                    console.debug("WS send audio base64", {
+                        length: input.media.data?.length ?? 0,
+                        mimeType: input.media.mimeType
+                    });
+                    this.debugAudioCount += 1;
+                }
                 this.ws.send(JSON.stringify({
                     type: "realtime_input",
                     media: {
