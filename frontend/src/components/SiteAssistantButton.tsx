@@ -492,9 +492,16 @@ SESSION KAPATMA - ÇOK ÖNEMLİ KURALLAR:
         // Helper to determine WebSocket URL
         const getWsUrl = () => {
             const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000/api';
-            // Remove /api if present and replace protocol
-            const baseUrl = apiUrl.replace(/\/api\/?$/, '');
-            return baseUrl.replace(/^http/, 'ws') + '/ws/assistant/';
+            // Remove /api if present
+            let baseUrl = apiUrl.replace(/\/api\/?$/, '');
+            
+            // If no protocol, add wss:// for production (assume https)
+            if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+                return 'wss://' + baseUrl + '/ws/assistant/';
+            }
+            
+            // Replace http(s) with ws(s)
+            return baseUrl.replace(/^https/, 'wss').replace(/^http/, 'ws') + '/ws/assistant/';
         };
 
         const wsUrl = getWsUrl();
