@@ -2,7 +2,7 @@
 name = "interview-backend"
 version = "0.1.0"
 description = "AI Interview Platform Backend"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 dependencies = [
     "Django==4.2.0",
     "djangorestframework==3.14.0",
