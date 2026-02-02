@@ -1,5 +1,3 @@
-import { Blob } from '@google/genai';
-
 export function base64ToUint8Array(base64: string): Uint8Array {
   const binaryString = atob(base64);
   const len = binaryString.length;
@@ -46,10 +44,7 @@ export function createPcmBlob(data: Float32Array): Blob {
     const s = Math.max(-1, Math.min(1, data[i]));
     int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
   }
-  return {
-    data: uint8ArrayToBase64(new Uint8Array(int16.buffer)),
-    mimeType: 'audio/pcm;rate=16000',
-  };
+  return new Blob([int16.buffer], { type: 'audio/pcm;rate=16000' });
 }
 
 export async function blobToBase64(blob: Blob): Promise<string> {

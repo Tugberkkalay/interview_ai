@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import { LiveServerMessage, Modality, FunctionDeclaration, Type } from '@google/genai';
+import { LiveServerMessage, Modality, FunctionDeclaration, Type } from '../types/gemini';
 import { InterviewStatus, AvatarId } from '../types';
 import { AudioVisualizer } from './AudioVisualizer';
 import { createPcmBlob, decodeAudioData, base64ToUint8Array } from '../services/audioUtils';
@@ -328,9 +328,6 @@ export const SiteAssistantButton: React.FC = () => {
 
     const init = async () => {
       try {
-        // @ts-ignore
-        const apiKey = process.env.API_KEY || import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-
         if (!audioContextsRef.current.input || !audioContextsRef.current.output || !audioContextsRef.current.stream) {
             throw new Error("Audio Contexts not initialized properly.");
         }

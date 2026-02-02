@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -38,6 +39,48 @@ def get_tools_declaration():
     
     return [create_demo_request_tool, end_session_tool]
 
+
+def normalize_tools(tools):
+    if not tools:
+        return None
+    normalized = []
+    for tool in tools:
+        if "function_declarations" in tool:
+            normalized.append(tool)
+        elif "functionDeclarations" in tool:
+            normalized.append({"function_declarations": tool["functionDeclarations"]})
+    return normalized or None
+
+
+def build_live_config(config_data, use_default_tools=False):
+    system_instruction = config_data.get("systemInstruction")
+    response_modalities = config_data.get("responseModalities")
+    input_audio_transcription = config_data.get("inputAudioTranscription")
+    output_audio_transcription = config_data.get("outputAudioTranscription")
+    speech_config = config_data.get("speechConfig")
+
+    tools = normalize_tools(config_data.get("tools"))
+    if not tools and use_default_tools:
+        tools = get_tools_declaration()
+
+    config = {}
+    if not response_modalities:
+        response_modalities = ["AUDIO"]
+    if response_modalities:
+        config["response_modalities"] = response_modalities
+    if system_instruction:
+        config["system_instruction"] = system_instruction
+    if tools:
+        config["tools"] = tools
+    if speech_config:
+        config["speech_config"] = speech_config
+    if input_audio_transcription is not None:
+        config["input_audio_transcription"] = input_audio_transcription
+    if output_audio_transcription is not None:
+        config["output_audio_transcription"] = output_audio_transcription
+
+    return config
+
 class AssistantConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.api_key = os.getenv('GEMINI_API_KEY')
@@ -68,7 +111,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 if type == "connect_gemini":
                     # Start Gemini Session
                     config = data.get("config", {})
-                    await self.start_gemini_session(config)
+                    model = data.get("model")
+                    await self.start_gemini_session(config, model)
                 
                 elif type == "client_content":
                     # Send text input to Gemini
@@ -81,13 +125,19 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                          await self.gemini_session.send(input=data.get("response"))
                 
                 elif type == "realtime_input":
-                     # Handle realtime input (text)
-                     if self.gemini_session:
-                         # Python SDK might send text via separate method or flexible send
-                         # data['data'] should contain the text
-                         text_content = data.get("text")
-                         if text_content:
-                             await self.gemini_session.send(input=text_content, end_of_turn=True)
+                    # Handle realtime input (text or media)
+                    if self.gemini_session:
+                        if "text" in data:
+                            text_content = data.get("text")
+                            end_of_turn = data.get("end_of_turn", True)
+                            await self.gemini_session.send(input=text_content, end_of_turn=end_of_turn)
+
+                        media = data.get("media")
+                        if media and media.get("data") and media.get("mimeType"):
+                            decoded = base64.b64decode(media["data"])
+                            await self.gemini_session.send(
+                                input={"mime_type": media["mimeType"], "data": decoded}
+                            )
 
             except json.JSONDecodeError:
                 print("Invalid JSON received")
@@ -97,29 +147,21 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             if self.gemini_session:
                 # Python SDK send accepts data chunks for audio/video
                 # "mime_type": "audio/pcm" is default for audio bytes usually
-                await self.gemini_session.send(input={"mime_type": "audio/pcm", "data": bytes_data})
+                await self.gemini_session.send(input={"mime_type": "audio/pcm;rate=16000", "data": bytes_data})
 
 
-    async def start_gemini_session(self, config_data):
+    async def start_gemini_session(self, config_data, model_id=None):
         try:
-            model_id = "gemini-2.0-flash-exp"
+            model = model_id or config_data.get("model") or "gemini-2.0-flash-exp"
             
             # Extract config
-            system_instruction = config_data.get("systemInstruction")
-            tools = get_tools_declaration()
-            response_modalities = ["AUDIO"] 
+            use_default_tools = "/ws/assistant/" in self.scope.get("path", "")
+            config = build_live_config(config_data, use_default_tools=use_default_tools)
             
-            # Setup config object
-            config = {
-                "response_modalities": response_modalities,
-                "system_instruction": system_instruction,
-                "tools": tools, 
-            }
-            
-            print(f"Connecting to Gemini Live: {model_id}")
+            print(f"Connecting to Gemini Live: {model}")
             
             # Use 'aio' for Async iteration
-            async with self.client.aio.live.connect(model=model_id, config=config) as session:
+            async with self.client.aio.live.connect(model=model, config=config) as session:
                 self.gemini_session = session
                 self.session_active = True
                 
@@ -136,6 +178,27 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                     tool_calls = response.tool_call
                     
                     if server_content:
+                        input_transcription = getattr(server_content, "input_transcription", None)
+                        output_transcription = getattr(server_content, "output_transcription", None)
+                        interrupted = getattr(server_content, "interrupted", None)
+
+                        if input_transcription:
+                            await self.send(text_data=json.dumps({
+                                "type": "input_transcription",
+                                "text": input_transcription.text
+                            }))
+
+                        if output_transcription:
+                            await self.send(text_data=json.dumps({
+                                "type": "output_transcription",
+                                "text": output_transcription.text
+                            }))
+
+                        if interrupted:
+                            await self.send(text_data=json.dumps({
+                                "type": "interrupted"
+                            }))
+
                         # Handle Model Turn (Audio/Text)
                         model_turn = server_content.model_turn
                         if model_turn:

@@ -1,4 +1,4 @@
-import { LiveServerMessage, Modality, FunctionDeclaration } from '@google/genai';
+import { LiveServerMessage } from '../types/gemini';
 
 export class LiveClient {
     private url: string;
@@ -16,7 +16,7 @@ export class LiveClient {
                 console.log("WebSocket connected to backend");
                 
                 // Create session only after connection is established
-                session = new ProxySession(ws, options.config);
+                session = new ProxySession(ws, options.config, options.model);
                 
                 if (options.callbacks?.onopen) {
                     await options.callbacks.onopen();
@@ -31,9 +31,9 @@ export class LiveClient {
             
             // Allow session to hook into onmessage
             ws.onmessage = (event) => {
-                 if (session) {
-                     session.handleMessage(event, options.callbacks?.onmessage);
-                 }
+                if (session) {
+                    session.handleMessage(event, options.callbacks?.onmessage);
+                }
             };
         });
     }
@@ -42,17 +42,18 @@ export class LiveClient {
 class ProxySession {
     private ws: WebSocket;
     private config: any;
+    private model?: string;
 
-    constructor(ws: WebSocket, config: any) {
+    constructor(ws: WebSocket, config: any, model?: string) {
         this.ws = ws;
         this.config = config;
+        this.model = model;
         
         // Send connection config to backend
         this.ws.send(JSON.stringify({
             type: "connect_gemini",
-            config: {
-                systemInstruction: config.systemInstruction
-            }
+            model: this.model,
+            config: this.config
         }));
     }
 
@@ -60,23 +61,40 @@ class ProxySession {
         try {
             // Handle binary audio data from backend
             if (event.data instanceof Blob) {
-                 event.data.arrayBuffer().then(buffer => {
-                     // Create a server message with inlineData for audio
-                     const msg: any = {
-                         serverContent: {
-                             modelTurn: {
+                event.data.arrayBuffer().then(buffer => {
+                    // Create a server message with inlineData for audio
+                    const msg: any = {
+                        serverContent: {
+                            modelTurn: {
                                 parts: [{
                                     inlineData: {
                                         mimeType: "audio/pcm;rate=24000",
                                         data: base64ArrayBuffer(buffer)
                                     }
                                 }]
-                             }
-                         }
-                     };
-                     if (onMessageCallback) onMessageCallback(msg);
-                 });
-                 return;
+                            }
+                        }
+                    };
+                    if (onMessageCallback) onMessageCallback(msg);
+                });
+                return;
+            }
+
+            if (event.data instanceof ArrayBuffer) {
+                const msg: any = {
+                    serverContent: {
+                        modelTurn: {
+                            parts: [{
+                                inlineData: {
+                                    mimeType: "audio/pcm;rate=24000",
+                                    data: base64ArrayBuffer(event.data)
+                                }
+                            }]
+                        }
+                    }
+                };
+                if (onMessageCallback) onMessageCallback(msg);
+                return;
             }
 
             const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
@@ -92,12 +110,33 @@ class ProxySession {
                 if (onMessageCallback) onMessageCallback(msg);
                 
             } else if (data.type === "tool_call") {
-                 const msg: any = {
+                const msg: any = {
                     toolCall: {
                         functionCalls: data.functionCalls
                     }
-                 };
-                 if (onMessageCallback) onMessageCallback(msg);
+                };
+                if (onMessageCallback) onMessageCallback(msg);
+            } else if (data.type === "input_transcription") {
+                const msg: any = {
+                    serverContent: {
+                        inputTranscription: { text: data.text }
+                    }
+                };
+                if (onMessageCallback) onMessageCallback(msg);
+            } else if (data.type === "output_transcription") {
+                const msg: any = {
+                    serverContent: {
+                        outputTranscription: { text: data.text }
+                    }
+                };
+                if (onMessageCallback) onMessageCallback(msg);
+            } else if (data.type === "interrupted") {
+                const msg: any = {
+                    serverContent: {
+                        interrupted: true
+                    }
+                };
+                if (onMessageCallback) onMessageCallback(msg);
             }
 
         } catch (e) {
@@ -105,20 +144,26 @@ class ProxySession {
         }
     }
 
-    sendRealtimeInput(input: { media?: any, text?: string }) {
-        if (input.text) {
-             this.ws.send(JSON.stringify({ 
-                 type: "realtime_input", 
-                 text: input.text 
-             }));
+    sendRealtimeInput(input: { media?: any, text?: string, endOfTurn?: boolean }) {
+        if (input.text !== undefined) {
+            this.ws.send(JSON.stringify({ 
+                type: "realtime_input", 
+                text: input.text,
+                end_of_turn: input.endOfTurn
+            }));
         }
         if (input.media) {
-             if (input.media instanceof Blob) {
-                 this.ws.send(input.media);
-             } else if (input.media.data) {
-                 // If it's base64 string (from some legacy code), better to convert to blob or send as specific type
-                 // SiteAssistantButton uses createPcmBlob which returns Blob
-             }
+            if (input.media instanceof Blob) {
+                this.ws.send(input.media);
+            } else if (input.media.data && input.media.mimeType) {
+                this.ws.send(JSON.stringify({
+                    type: "realtime_input",
+                    media: {
+                        mimeType: input.media.mimeType,
+                        data: input.media.data
+                    }
+                }));
+            }
         }
     }
 

@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type } from '@google/genai';
+import { LiveServerMessage, Modality, FunctionDeclaration, Type } from '../types/gemini';
 import { InterviewStatus, AvatarId, InterviewReport } from '../types';
 import { Avatar } from './Avatar';
 import { createPcmBlob, decodeAudioData, base64ToUint8Array, blobToBase64 } from '../services/audioUtils';
 import { KnowledgeItem } from '../services/api';
+import { LiveClient } from '../services/LiveClient';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -333,6 +334,17 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
       }
   };
 
+  const getWsUrl = () => {
+    const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000/api';
+    let baseUrl = apiUrl.replace(/\/api\/?$/, '');
+
+    if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+      return 'wss://' + baseUrl + '/ws/interview/';
+    }
+
+    return baseUrl.replace(/^https/, 'wss').replace(/^http/, 'ws') + '/ws/interview/';
+  };
+
   useEffect(() => {
     if (!isConnectionStarted) return;
 
@@ -344,9 +356,6 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
 
     const init = async () => {
       try {
-        // @ts-ignore
-        const apiKey = process.env.API_KEY || import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-
         if (!audioContextsRef.current.input || !audioContextsRef.current.output || !audioContextsRef.current.stream) {
             throw new Error("Audio Contexts not initialized properly.");
         }
@@ -399,14 +408,6 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
             return;
         }
 
-        // Only initialize GoogleGenAI if API key is available
-        if (!apiKey) {
-            throw new Error("An API Key must be set when running in a browser. Please set VITE_API_KEY environment variable or configure API_KEY in vite.config.ts");
-        }
-        
-        console.log("Initializing Gemini AI with API key...");
-        const ai = new GoogleGenAI({ apiKey });
-        
         // --- TOOLS ---
         const endInterviewTool: FunctionDeclaration = {
             name: "end_interview",
@@ -483,7 +484,9 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ onEnd, onErr
         // systemPrompt zaten backend'den geldi (yukarıda)
 
         console.log("Connecting to Gemini Live API...", { avatarId, aiVoice });
-        const sessionPromise = ai.live.connect({
+        const wsUrl = getWsUrl();
+        const liveClient = new LiveClient(wsUrl);
+        const sessionPromise = liveClient.connect({
             model: 'gemini-2.5-flash-native-audio-preview-09-2025',
             config: {
                 responseModalities: [Modality.AUDIO],
