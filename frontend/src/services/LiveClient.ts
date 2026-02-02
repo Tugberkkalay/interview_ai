@@ -10,11 +10,14 @@ export class LiveClient {
     async connect(options: any): Promise<ProxySession> {
         return new Promise((resolve, reject) => {
             const ws = new WebSocket(this.url);
-            
-            const session = new ProxySession(ws, options.config);
+            let session: ProxySession;
 
             ws.onopen = async () => {
                 console.log("WebSocket connected to backend");
+                
+                // Create session only after connection is established
+                session = new ProxySession(ws, options.config);
+                
                 if (options.callbacks?.onopen) {
                     await options.callbacks.onopen();
                 }
@@ -27,9 +30,10 @@ export class LiveClient {
             };
             
             // Allow session to hook into onmessage
-            const originalOnMessage = ws.onmessage;
             ws.onmessage = (event) => {
-                 session.handleMessage(event, options.callbacks?.onmessage);
+                 if (session) {
+                     session.handleMessage(event, options.callbacks?.onmessage);
+                 }
             };
         });
     }
