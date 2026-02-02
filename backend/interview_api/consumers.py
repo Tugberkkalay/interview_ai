@@ -94,6 +94,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         self.gemini_session = None
         self.session_active = False
         self.session_task = None
+        self.pending_text_inputs = []
+        self.pending_media_inputs = []
+        self.pending_audio_chunks = []
 
         await self.accept()
         print("WebSocket connected!")
@@ -133,18 +136,29 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 
                 elif type == "realtime_input":
                     # Handle realtime input (text or media)
-                    if self.gemini_session:
-                        if "text" in data:
-                            text_content = data.get("text")
-                            end_of_turn = data.get("end_of_turn", True)
+                    if "text" in data:
+                        text_content = data.get("text")
+                        end_of_turn = data.get("end_of_turn", True)
+                        if self.gemini_session:
                             await self.gemini_session.send(input=text_content, end_of_turn=end_of_turn)
+                        else:
+                            self.pending_text_inputs.append({
+                                "text": text_content,
+                                "end_of_turn": end_of_turn
+                            })
 
-                        media = data.get("media")
-                        if media and media.get("data") and media.get("mimeType"):
-                            decoded = base64.b64decode(media["data"])
+                    media = data.get("media")
+                    if media and media.get("data") and media.get("mimeType"):
+                        decoded = base64.b64decode(media["data"])
+                        if self.gemini_session:
                             await self.gemini_session.send(
                                 input={"mime_type": media["mimeType"], "data": decoded}
                             )
+                        else:
+                            self.pending_media_inputs.append({
+                                "mime_type": media["mimeType"],
+                                "data": decoded
+                            })
 
             except json.JSONDecodeError:
                 print("Invalid JSON received")
@@ -155,6 +169,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 # Python SDK send accepts data chunks for audio/video
                 # "mime_type": "audio/pcm" is default for audio bytes usually
                 await self.gemini_session.send(input={"mime_type": "audio/pcm;rate=16000", "data": bytes_data})
+            else:
+                self.pending_audio_chunks.append(bytes_data)
 
 
     async def start_gemini_session(self, config_data, model_id=None):
@@ -171,6 +187,27 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             async with self.client.aio.live.connect(model=model, config=config) as session:
                 self.gemini_session = session
                 self.session_active = True
+
+                # Flush any buffered inputs
+                if self.pending_text_inputs:
+                    for item in self.pending_text_inputs:
+                        await self.gemini_session.send(
+                            input=item.get("text"),
+                            end_of_turn=item.get("end_of_turn", True)
+                        )
+                    self.pending_text_inputs = []
+                if self.pending_media_inputs:
+                    for item in self.pending_media_inputs:
+                        await self.gemini_session.send(
+                            input={"mime_type": item["mime_type"], "data": item["data"]}
+                        )
+                    self.pending_media_inputs = []
+                if self.pending_audio_chunks:
+                    for chunk in self.pending_audio_chunks:
+                        await self.gemini_session.send(
+                            input={"mime_type": "audio/pcm;rate=16000", "data": chunk}
+                        )
+                    self.pending_audio_chunks = []
                 
                 # Notify frontend that we are connected
                 await self.send(text_data=json.dumps({"type": "gemini_connected"}))
