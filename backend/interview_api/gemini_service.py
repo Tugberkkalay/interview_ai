@@ -4,13 +4,16 @@ Handles all Gemini API interactions
 """
 import os
 import json
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from django.conf import settings
 from .models import Prompt
 
 
-# Configure Gemini API
-genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+# Configure Gemini client
+client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
+
+GEMINI_MODEL = 'gemini-3-flash-preview'
 
 
 class GeminiService:
@@ -32,19 +35,18 @@ class GeminiService:
         
         system_prompt = prompt_obj.system_prompt
         
-        model = genai.GenerativeModel(
-            model_name='gemini-2.0-flash-exp',
-            generation_config={
-                "temperature": 0.2,
-                "response_mime_type": "application/json"
-            }
-        )
-        
         try:
-            response = model.generate_content([
-                {"role": "user", "parts": [{"text": system_prompt}]},
-                {"role": "user", "parts": [{"text": f"CV Metni:\n\n{cv_text}"}]}
-            ])
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=[
+                    {"role": "user", "parts": [{"text": system_prompt}]},
+                    {"role": "user", "parts": [{"text": f"CV Metni:\n\n{cv_text}"}]}
+                ],
+                config=types.GenerateContentConfig(
+                    temperature=0.2,
+                    response_mime_type="application/json",
+                ),
+            )
             
             result = json.loads(response.text)
             return result
@@ -115,14 +117,6 @@ class GeminiService:
         
         system_prompt = prompt_obj.system_prompt
         
-        model = genai.GenerativeModel(
-            model_name='gemini-2.0-flash-exp',
-            generation_config={
-                "temperature": 0.3,
-                "response_mime_type": "application/json"
-            }
-        )
-        
         transcript_text = "\n".join([
             f"{item['role']}: {item['text']}" 
             for item in transcript
@@ -143,14 +137,20 @@ class GeminiService:
         full_prompt = f"{context_text}\n\nMülakat Transkripti:\n{transcript_text}" if context_text else f"Mülakat Transkripti:\n{transcript_text}"
         
         try:
-            response = model.generate_content([
-                {"role": "user", "parts": [{"text": system_prompt}]},
-                {"role": "user", "parts": [{"text": full_prompt}]}
-            ])
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=[
+                    {"role": "user", "parts": [{"text": system_prompt}]},
+                    {"role": "user", "parts": [{"text": full_prompt}]}
+                ],
+                config=types.GenerateContentConfig(
+                    temperature=0.3,
+                    response_mime_type="application/json",
+                ),
+            )
             
             result = json.loads(response.text)
             return result
             
         except Exception as e:
             raise Exception(f"Rapor oluşturma hatası: {str(e)}")
-

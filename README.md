@@ -293,7 +293,7 @@ Frontend için Cloudflare Pages:
 - Yüklenen CV'yi parse eder ve yapılandırılmış JSON formatında döner
 
 ### 2. Canlı Mülakat
-- **Model**: `gemini-2.5-flash-native-audio-preview-09-2025`
+- **Model**: `gemini-2.5-flash-native-audio-preview-12-2025`
 - Multimodal Live API ile gerçek zamanlı ses ve görüntü analizi
 - Tool calling ile görüşmeyi sonlandırma ve bilgi tabanına erişim
 

@@ -6,6 +6,10 @@ export default defineConfig(({ mode }) => {
   return {
     base: '/static/', // Ensure assets are served from root
     plugins: [react()],
+    server: {
+      port: 5175,
+      host: true,
+    },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url))

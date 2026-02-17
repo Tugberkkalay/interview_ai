@@ -117,9 +117,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             try:
                 data = json.loads(text_data)
                 type = data.get("type")
-                if self.debug_text_count < 5:
-                    print(f"WS text recv type={type} keys={list(data.keys())}")
-                    self.debug_text_count += 1
+                print(f"WS text recv type={type} keys={list(data.keys())} gemini_session={'READY' if self.gemini_session else 'NOT_READY'}")
                 
                 if type == "connect_gemini":
                     # Start Gemini Session
@@ -144,13 +142,25 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                     if "text" in data:
                         text_content = data.get("text")
                         end_of_turn = data.get("end_of_turn", True)
+                        print(f"REALTIME TEXT: '{text_content[:80] if text_content else ''}' end_of_turn={end_of_turn} session={'READY' if self.gemini_session else 'PENDING'}")
                         if self.gemini_session:
-                            await self.gemini_session.send(input=text_content, end_of_turn=end_of_turn)
+                            try:
+                                if text_content: # Only send if not empty
+                                    await self.gemini_session.send(input=text_content, end_of_turn=end_of_turn)
+                                    print(f"SENT to Gemini successfully")
+                                else:
+                                    print(f"SKIPPING empty text input")
+                            except Exception as e:
+                                print(f"ERROR sending to Gemini: {e}")
                         else:
-                            self.pending_text_inputs.append({
-                                "text": text_content,
-                                "end_of_turn": end_of_turn
-                            })
+                            if text_content: # Only buffer if not empty
+                                self.pending_text_inputs.append({
+                                    "text": text_content,
+                                    "end_of_turn": end_of_turn
+                                })
+                                print(f"BUFFERED text input, pending count: {len(self.pending_text_inputs)}")
+                            else:
+                                print(f"SKIPPING empty buffered text input")
 
                     media = data.get("media")
                     if media and media.get("data") and media.get("mimeType"):
@@ -174,9 +184,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 self.debug_audio_count += 1
             # Send audio chunk to Gemini
             if self.gemini_session:
-                # Python SDK send accepts data chunks for audio/video
-                # "mime_type": "audio/pcm" is default for audio bytes usually
-                await self.gemini_session.send(input={"mime_type": "audio/pcm;rate=16000", "data": bytes_data})
+                try:
+                    await self.gemini_session.send(input={"mime_type": "audio/pcm;rate=16000", "data": bytes_data})
+                except Exception as e:
+                    print(f"Error sending audio to Gemini: {e}")
             else:
                 self.pending_audio_chunks.append(bytes_data)
 
@@ -198,11 +209,17 @@ class AssistantConsumer(AsyncWebsocketConsumer):
 
                 # Flush any buffered inputs
                 if self.pending_text_inputs:
+                    print(f"FLUSHING {len(self.pending_text_inputs)} pending text inputs")
                     for item in self.pending_text_inputs:
-                        await self.gemini_session.send(
-                            input=item.get("text"),
-                            end_of_turn=item.get("end_of_turn", True)
-                        )
+                        print(f"  Flushing: '{item.get('text', '')[:80]}' end_of_turn={item.get('end_of_turn', True)}")
+                        try:
+                            await self.gemini_session.send(
+                                input=item.get("text"),
+                                end_of_turn=item.get("end_of_turn", True)
+                            )
+                            print(f"  Flushed successfully")
+                        except Exception as e:
+                            print(f"  Flush ERROR: {e}")
                     self.pending_text_inputs = []
                 if self.pending_media_inputs:
                     for item in self.pending_media_inputs:
@@ -222,64 +239,83 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 print("Gemini Live Connected, listening for events...")
                 
                 # Listen for messages from Gemini
-                async for response in session.receive():
-                    if not self.session_active:
-                        break
-                         
-                    server_content = response.server_content
-                    tool_calls = response.tool_call
-                    
-                    if server_content:
-                        input_transcription = getattr(server_content, "input_transcription", None)
-                        output_transcription = getattr(server_content, "output_transcription", None)
-                        interrupted = getattr(server_content, "interrupted", None)
-
-                        if input_transcription:
-                            await self.send(text_data=json.dumps({
-                                "type": "input_transcription",
-                                "text": input_transcription.text
-                            }))
-
-                        if output_transcription:
-                            await self.send(text_data=json.dumps({
-                                "type": "output_transcription",
-                                "text": output_transcription.text
-                            }))
-
-                        if interrupted:
-                            await self.send(text_data=json.dumps({
-                                "type": "interrupted"
-                            }))
-
-                        # Handle Model Turn (Audio/Text)
-                        model_turn = server_content.model_turn
-                        if model_turn:
-                            for part in model_turn.parts:
-                                if part.text:
-                                    print(f"Received text from Gemini: {part.text[:50]}...")
-                                    await self.send(text_data=json.dumps({
-                                        "type": "text", 
-                                        "text": part.text
-                                    }))
-                                if part.inline_data:
-                                    # It's audio data
-                                    await self.send(bytes_data=part.inline_data.data)
-
-                    if tool_calls:
-                        print("Received tool call from Gemini")
-                        # Handle Tool Calls
-                        fc_list = []
-                        for fc in tool_calls.function_calls:
-                            fc_list.append({
-                                "id": fc.id,
-                                "name": fc.name,
-                                "args": fc.args
-                            })
+                # NOTE: session.receive() breaks after turn_complete, so we wrap in while loop
+                # to support multi-turn conversation
+                print("Starting to listen for Gemini responses...")
+                while self.session_active:
+                    async for response in session.receive():
+                        if not self.session_active:
+                            print("Session no longer active, breaking loop")
+                            break
                         
-                        await self.send(text_data=json.dumps({
-                            "type": "tool_call",
-                            "functionCalls": fc_list
-                        }))
+                        # Detailed response logging
+                        setup_complete = getattr(response, 'setup_complete', None)
+                        go_away = getattr(response, 'go_away', None)
+                        server_content = response.server_content
+                        tool_calls = response.tool_call
+                        
+                        if setup_complete:
+                            print(f"Gemini SETUP_COMPLETE: {setup_complete}")
+                            continue
+                        if go_away:
+                            print(f"Gemini GO_AWAY: {go_away}")
+                            continue
+                        
+                        has_model_turn = bool(server_content and getattr(server_content, 'model_turn', None))
+                        has_transcription = bool(server_content and (getattr(server_content, 'input_transcription', None) or getattr(server_content, 'output_transcription', None)))
+                        print(f"Gemini response: server_content={bool(server_content)} model_turn={has_model_turn} transcription={has_transcription} tool_call={bool(tool_calls)}")
+                        
+                        if server_content:
+                            input_transcription = getattr(server_content, "input_transcription", None)
+                            output_transcription = getattr(server_content, "output_transcription", None)
+                            interrupted = getattr(server_content, "interrupted", None)
+
+                            if input_transcription:
+                                await self.send(text_data=json.dumps({
+                                    "type": "input_transcription",
+                                    "text": input_transcription.text
+                                }))
+
+                            if output_transcription:
+                                await self.send(text_data=json.dumps({
+                                    "type": "output_transcription",
+                                    "text": output_transcription.text
+                                }))
+
+                            if interrupted:
+                                await self.send(text_data=json.dumps({
+                                    "type": "interrupted"
+                                }))
+
+                            # Handle Model Turn (Audio/Text)
+                            model_turn = server_content.model_turn
+                            if model_turn:
+                                for part in model_turn.parts:
+                                    if part.text:
+                                        print(f"Received text from Gemini: {part.text[:50]}...")
+                                        await self.send(text_data=json.dumps({
+                                            "type": "text", 
+                                            "text": part.text
+                                        }))
+                                    if part.inline_data:
+                                        # It's audio data
+                                        await self.send(bytes_data=part.inline_data.data)
+
+                        if tool_calls:
+                            print("Received tool call from Gemini")
+                            # Handle Tool Calls
+                            fc_list = []
+                            for fc in tool_calls.function_calls:
+                                fc_list.append({
+                                    "id": fc.id,
+                                    "name": fc.name,
+                                    "args": fc.args
+                                })
+                            
+                            await self.send(text_data=json.dumps({
+                                "type": "tool_call",
+                                "functionCalls": fc_list
+                            }))
                         
         except asyncio.CancelledError:
             self.session_active = False

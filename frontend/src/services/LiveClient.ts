@@ -14,21 +14,23 @@ export class LiveClient {
 
             ws.onopen = async () => {
                 console.log("WebSocket connected to backend");
-                
+
                 // Create session only after connection is established
                 session = new ProxySession(ws, options.config, options.model);
-                
+
+                // Resolve BEFORE calling onopen so that sessionPromise is available inside onopen
+                resolve(session);
+
                 if (options.callbacks?.onopen) {
                     await options.callbacks.onopen();
                 }
-                resolve(session);
             };
 
             ws.onerror = (error) => {
                 console.error("WebSocket error:", error);
                 reject(error);
             };
-            
+
             // Allow session to hook into onmessage
             ws.onmessage = (event) => {
                 if (session) {
@@ -50,7 +52,7 @@ class ProxySession {
         this.ws = ws;
         this.config = config;
         this.model = model;
-        
+
         // Send connection config to backend
         this.ws.send(JSON.stringify({
             type: "connect_gemini",
@@ -100,7 +102,7 @@ class ProxySession {
             }
 
             const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-            
+
             if (data.type === "text") {
                 const msg: any = {
                     serverContent: {
@@ -110,7 +112,7 @@ class ProxySession {
                     }
                 };
                 if (onMessageCallback) onMessageCallback(msg);
-                
+
             } else if (data.type === "tool_call") {
                 const msg: any = {
                     toolCall: {
@@ -155,8 +157,8 @@ class ProxySession {
                 });
                 this.debugTextCount += 1;
             }
-            this.ws.send(JSON.stringify({ 
-                type: "realtime_input", 
+            this.ws.send(JSON.stringify({
+                type: "realtime_input",
                 text: input.text,
                 end_of_turn: input.endOfTurn
             }));
@@ -196,7 +198,7 @@ class ProxySession {
             response: response
         }));
     }
-    
+
     close() {
         this.ws.close();
     }
@@ -204,46 +206,46 @@ class ProxySession {
 
 // Helper to convert ArrayBuffer to Base64
 function base64ArrayBuffer(arrayBuffer: ArrayBuffer) {
-  var base64    = ''
-  var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    var base64 = ''
+    var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
-  var bytes         = new Uint8Array(arrayBuffer)
-  var byteLength    = bytes.byteLength
-  var byteRemainder = byteLength % 3
-  var mainLength    = byteLength - byteRemainder
+    var bytes = new Uint8Array(arrayBuffer)
+    var byteLength = bytes.byteLength
+    var byteRemainder = byteLength % 3
+    var mainLength = byteLength - byteRemainder
 
-  var a, b, c, d
-  var chunk
+    var a, b, c, d
+    var chunk
 
-  // Main loop deals with bytes in chunks of 3
-  for (var i = 0; i < mainLength; i = i + 3) {
-    chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2]
+    // Main loop deals with bytes in chunks of 3
+    for (var i = 0; i < mainLength; i = i + 3) {
+        chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2]
 
-    a = (chunk & 16515072) >> 18 // 16515072 = (2^6 - 1) << 18
-    b = (chunk & 258048)   >> 12 // 258048   = (2^6 - 1) << 12
-    c = (chunk & 4032)     >>  6 // 4032     = (2^6 - 1) << 6
-    d = chunk & 63               // 63       = 2^6 - 1
+        a = (chunk & 16515072) >> 18 // 16515072 = (2^6 - 1) << 18
+        b = (chunk & 258048) >> 12 // 258048   = (2^6 - 1) << 12
+        c = (chunk & 4032) >> 6 // 4032     = (2^6 - 1) << 6
+        d = chunk & 63               // 63       = 2^6 - 1
 
-    base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d]
-  }
+        base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d]
+    }
 
-  // Deal with the remaining bytes and padding
-  if (byteRemainder == 1) {
-    chunk = bytes[mainLength]
+    // Deal with the remaining bytes and padding
+    if (byteRemainder == 1) {
+        chunk = bytes[mainLength]
 
-    a = (chunk & 252) >> 2 // 252 = (2^6 - 1) << 2
-    b = (chunk & 3)   << 4 // 3   = 2^2 - 1
+        a = (chunk & 252) >> 2 // 252 = (2^6 - 1) << 2
+        b = (chunk & 3) << 4 // 3   = 2^2 - 1
 
-    base64 += encodings[a] + encodings[b] + '=='
-  } else if (byteRemainder == 2) {
-    chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1]
+        base64 += encodings[a] + encodings[b] + '=='
+    } else if (byteRemainder == 2) {
+        chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1]
 
-    a = (chunk & 64512) >> 10 // 64512 = (2^6 - 1) << 10
-    b = (chunk & 1008)  >>  4 // 1008  = (2^6 - 1) << 4
-    c = (chunk & 15)    <<  2 // 15    = 2^4 - 1
+        a = (chunk & 64512) >> 10 // 64512 = (2^6 - 1) << 10
+        b = (chunk & 1008) >> 4 // 1008  = (2^6 - 1) << 4
+        c = (chunk & 15) << 2 // 15    = 2^4 - 1
 
-    base64 += encodings[a] + encodings[b] + encodings[c] + '='
-  }
+        base64 += encodings[a] + encodings[b] + encodings[c] + '='
+    }
 
-  return base64
+    return base64
 }

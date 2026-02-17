@@ -185,8 +185,28 @@ def create_session(request):
         company.increment_usage()
     
     # Generate interview link
-    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5175').rstrip('/')
+    frontend_url = os.getenv('FRONTEND_URL')
+    
+    # If FRONTEND_URL is not set, try to find a valid origin in CORS_ALLOWED_ORIGINS
+    if not frontend_url:
+        cors_origins = getattr(settings, 'CORS_ALLOWED_ORIGINS', [])
+        for origin in cors_origins:
+            # Skip localhost/127.0.0.1 in production if possible, or just take the first valid one
+            if origin and 'localhost' not in origin and '127.0.0.1' not in origin:
+                frontend_url = origin
+                break
+    
+    # Fallback to default if still not found
+    if not frontend_url:
+        frontend_url = 'http://localhost:5175'
+        
+    frontend_url = frontend_url.rstrip('/')
     interview_link = f"{frontend_url}/interview/{session.token}"
+    
+    # Log the generated link for debugging
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Generated interview link: {interview_link} (using frontend_url: {frontend_url})")
     
     return Response(
         {
