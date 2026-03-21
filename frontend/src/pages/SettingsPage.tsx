@@ -692,24 +692,172 @@ print(f"Interview Link: {data['interview_link']}")`}
                     </div>
 
                     <div>
-                      <div className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">Webhook Request Body (POST)</div>
+                      <div className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">Webhook Request Body (POST) — Tam Format</div>
+                      <p className="text-xs text-slate-400 mb-3">Mülakat tamamlandığında <code className="text-xs bg-white/10 px-1.5 py-0.5 rounded text-white font-mono">ats_webhook_url</code> adresinize aşağıdaki formatta POST request gönderilir:</p>
                       <pre className="bg-black/30 rounded-xl p-4 text-xs font-mono text-slate-300 overflow-x-auto border border-white/5 scrollbar-thin scrollbar-thumb-white/10">
 {`{
-  "token": "550e8400-e29b-41d4-a716-446655440000",
-  "external_session_id": "ATS-12345",
+  "session_id": "ATS-12345",
+  "interview_token": "550e8400-e29b-41d4-a716-446655440000",
+  "completed_at": "2026-03-21T12:00:00+03:00",
   "report": {
     "candidateName": "Ahmet Yılmaz",
     "overallScore": 85,
+    "duration": "25 dakika",
     "categoryScores": {
       "technical": 90,
       "communication": 85,
-      "problemSolving": 80
+      "problemSolving": 80,
+      "culturalFit": 85,
+      "confidence": 80
     },
-    "summary": "...",
-    "transcript": [...]
+    "visualAnalysis": {
+      "attire": "Profesyonel görünüm",
+      "environment": "Düzenli ve sessiz ortam",
+      "bodyLanguage": "Açık ve güvenli postür",
+      "eyeContact": "İyi göz teması"
+    },
+    "behavioralAnalysis": {
+      "reactionSpeed": "Hızlı ve yapıcı yanıtlar",
+      "stressManagement": "Sakin ve kontrollü",
+      "toneOfVoice": "Profesyonel ve samimi ton"
+    },
+    "keyStrengths": [
+      "Python ve Django konusunda derin bilgi",
+      "İyi iletişim becerileri"
+    ],
+    "areasForImprovement": [
+      "DevOps deneyimi sınırlı",
+      "Sistem tasarımı konusunda gelişme potansiyeli"
+    ],
+    "summary": "Aday teknik konularda güçlü performans sergiledi...",
+    "hiringRecommendation": "Hire",
+    "transcript": [
+      { "role": "Uzman", "text": "Merhaba, görüşmemize hoş geldiniz..." },
+      { "role": "Aday", "text": "Merhaba, teşekkür ederim..." }
+    ]
   }
 }`}
                       </pre>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Field Reference Table */}
+                <div className="bg-white/5 rounded-2xl shadow-xl border border-white/10 p-6 backdrop-blur-sm">
+                  <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Rapor Alanları Referansı
+                  </h3>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          <th className="py-2.5 px-3 font-bold text-slate-400 uppercase tracking-wider">Alan</th>
+                          <th className="py-2.5 px-3 font-bold text-slate-400 uppercase tracking-wider">Tip</th>
+                          <th className="py-2.5 px-3 font-bold text-slate-400 uppercase tracking-wider">Açıklama</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-slate-300">
+                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="py-2.5 px-3 font-mono text-cyan-400">session_id</td>
+                          <td className="py-2.5 px-3 text-slate-500">string</td>
+                          <td className="py-2.5 px-3">Session oluştururken gönderdiğiniz <code className="text-[10px] bg-white/10 px-1 py-0.5 rounded text-white">external_session_id</code></td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="py-2.5 px-3 font-mono text-cyan-400">interview_token</td>
+                          <td className="py-2.5 px-3 text-slate-500">UUID</td>
+                          <td className="py-2.5 px-3">Sistemimizin oluşturduğu benzersiz session token</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="py-2.5 px-3 font-mono text-cyan-400">completed_at</td>
+                          <td className="py-2.5 px-3 text-slate-500">ISO 8601</td>
+                          <td className="py-2.5 px-3">Mülakatın tamamlanma zamanı</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="py-2.5 px-3 font-mono text-cyan-400">overallScore</td>
+                          <td className="py-2.5 px-3 text-slate-500">number (0-100)</td>
+                          <td className="py-2.5 px-3">Genel performans skoru</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="py-2.5 px-3 font-mono text-cyan-400">categoryScores</td>
+                          <td className="py-2.5 px-3 text-slate-500">object</td>
+                          <td className="py-2.5 px-3">5 kategori: technical, communication, problemSolving, culturalFit, confidence (0-100)</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="py-2.5 px-3 font-mono text-cyan-400">visualAnalysis</td>
+                          <td className="py-2.5 px-3 text-slate-500">object</td>
+                          <td className="py-2.5 px-3">Görüntü analizi: attire, environment, bodyLanguage, eyeContact</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="py-2.5 px-3 font-mono text-cyan-400">behavioralAnalysis</td>
+                          <td className="py-2.5 px-3 text-slate-500">object</td>
+                          <td className="py-2.5 px-3">Davranış analizi: reactionSpeed, stressManagement, toneOfVoice</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="py-2.5 px-3 font-mono text-cyan-400">hiringRecommendation</td>
+                          <td className="py-2.5 px-3 text-slate-500">enum</td>
+                          <td className="py-2.5 px-3">"Strong Hire" | "Hire" | "Maybe" | "No Hire"</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="py-2.5 px-3 font-mono text-cyan-400">keyStrengths</td>
+                          <td className="py-2.5 px-3 text-slate-500">string[]</td>
+                          <td className="py-2.5 px-3">Adayın güçlü yönleri listesi</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="py-2.5 px-3 font-mono text-cyan-400">areasForImprovement</td>
+                          <td className="py-2.5 px-3 text-slate-500">string[]</td>
+                          <td className="py-2.5 px-3">Gelişim alanları listesi</td>
+                        </tr>
+                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="py-2.5 px-3 font-mono text-cyan-400">summary</td>
+                          <td className="py-2.5 px-3 text-slate-500">string</td>
+                          <td className="py-2.5 px-3">AI tarafından oluşturulan genel değerlendirme metni</td>
+                        </tr>
+                        <tr className="hover:bg-white/5 transition-colors">
+                          <td className="py-2.5 px-3 font-mono text-cyan-400">transcript</td>
+                          <td className="py-2.5 px-3 text-slate-500">array</td>
+                          <td className="py-2.5 px-3">Mülakat transkripti (role + text)</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* ATS Implementation Guide */}
+                <div className="bg-emerald-500/5 rounded-2xl shadow-xl border border-emerald-500/20 p-6 backdrop-blur-sm">
+                  <div className="flex items-start gap-4">
+                    <div className="p-2 bg-emerald-500/10 rounded-lg">
+                      <svg className="w-6 h-6 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-white mb-2">Webhook Endpoint'inizi Nasıl Hazırlamalısınız?</h3>
+                      <ul className="space-y-3 text-sm text-slate-400">
+                        <li className="flex items-start gap-2">
+                          <span className="text-emerald-400 mt-1 font-bold">✓</span>
+                          <span><strong className="text-white">HTTP Status:</strong> Başarılı işlem için <code className="text-[10px] bg-white/10 px-1 py-0.5 rounded text-emerald-400">200</code>, <code className="text-[10px] bg-white/10 px-1 py-0.5 rounded text-emerald-400">201</code> veya <code className="text-[10px] bg-white/10 px-1 py-0.5 rounded text-emerald-400">204</code> dönün.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-emerald-400 mt-1 font-bold">✓</span>
+                          <span><strong className="text-white">Authorization:</strong> Header'da gelen <code className="text-[10px] bg-white/10 px-1 py-0.5 rounded text-white">Bearer {'{ats_api_token}'}</code> değerini doğrulayın.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-emerald-400 mt-1 font-bold">✓</span>
+                          <span><strong className="text-white">session_id:</strong> Gelen <code className="text-[10px] bg-white/10 px-1 py-0.5 rounded text-white">session_id</code> ile kendi tarafınızdaki kaydı eşleştirin.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-emerald-400 mt-1 font-bold">✓</span>
+                          <span><strong className="text-white">Retry:</strong> Webhook başarısız olursa (non-2xx) sistem otomatik olarak <strong className="text-white">5 kereye kadar</strong> tekrar dener. Rapor 24 saat boyunca şifrelenmiş olarak tutulur.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-emerald-400 mt-1 font-bold">✓</span>
+                          <span><strong className="text-white">HTTPS:</strong> Production'da webhook endpoint'iniz mutlaka HTTPS olmalıdır.</span>
+                        </li>
+                      </ul>
                     </div>
                   </div>
                 </div>
