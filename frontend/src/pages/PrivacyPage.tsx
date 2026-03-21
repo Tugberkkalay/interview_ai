@@ -6,24 +6,24 @@ export const PrivacyPage: React.FC = () => {
     <div className="min-h-screen bg-[#020617] text-slate-300 font-sans selection:bg-cyan-500 selection:text-black">
       <div className="container mx-auto px-6 py-20 max-w-4xl">
         <header className="flex justify-between items-center mb-12">
-           <Link to="/" className="text-2xl font-black tracking-tighter group">
-             <span className="text-white group-hover:text-cyan-400 transition-colors">PLENA</span>
-             <span className="text-white/50">.AI</span>
-           </Link>
-           <Link to="/" className="text-sm font-mono text-slate-400 hover:text-white transition-colors">
-             ← GERİ DÖN
-           </Link>
+          <Link to="/" className="text-2xl font-black tracking-tighter group">
+            <span className="text-white group-hover:text-cyan-400 transition-colors">Cognivia</span>
+            <span className="text-white/50">Interview</span>
+          </Link>
+          <Link to="/" className="text-sm font-mono text-slate-400 hover:text-white transition-colors">
+            ← GERİ DÖN
+          </Link>
         </header>
 
         <h1 className="text-4xl md:text-5xl font-black text-white mb-8">Gizlilik Politikası</h1>
-        
+
         <div className="prose prose-invert prose-lg max-w-none">
           <p className="lead">
             Son Güncelleme: {new Date().toLocaleDateString('tr-TR')}
           </p>
-          
+
           <p>
-            Plena AI ("Biz", "Şirket"), gizliliğinize önem verir. Bu Gizlilik Politikası, web sitemizi ve hizmetlerimizi kullandığınızda kişisel verilerinizi nasıl topladığımızı, kullandığımızı ve koruduğumuzu açıklar.
+            Cognivia AI ("Biz", "Şirket"), gizliliğinize önem verir. Bu Gizlilik Politikası, web sitemizi ve hizmetlerimizi kullandığınızda kişisel verilerinizi nasıl topladığımızı, kullandığımızı ve koruduğumuzu açıklar.
           </p>
 
           <h3>1. Toplanan Veriler</h3>
@@ -53,7 +53,7 @@ export const PrivacyPage: React.FC = () => {
 
           <h3>4. İletişim</h3>
           <p>
-            Gizlilik politikamızla ilgili sorularınız için <a href="mailto:privacy@plena.ai" className="text-cyan-400 hover:underline">privacy@plena.ai</a> adresinden bize ulaşabilirsiniz.
+            Gizlilik politikamızla ilgili sorularınız için <a href="mailto:info@plena.pro" className="text-cyan-400 hover:underline">info@plena.pro</a> adresinden bize ulaşabilirsiniz.
           </p>
         </div>
       </div>

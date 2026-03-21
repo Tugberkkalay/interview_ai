@@ -19,11 +19,12 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 from django.urls import re_path
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('admin', RedirectView.as_view(url='/admin/', permanent=True)),
     path('api/', include('interview_api.urls')),
     
     # API Documentation
